@@ -324,8 +324,6 @@ export function ChatWindow(props: {
   const [selectedLanguage, setSelectedLanguage] = useState("english");
   const msgId = uuidv4();
 
-  console.log("selected-----", selectedLanguage);
-
   const [sourcesForMessages, setSourcesForMessages] = useState<
     Record<string, any>
   >({});
