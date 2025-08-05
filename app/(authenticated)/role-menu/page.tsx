@@ -183,6 +183,20 @@ export default async function RoleMenu() {
       page_link: "/my-gpt",
       page_name: "My GPT",
     },
+    {
+      id: 23,
+      app_name: "amogaappz",
+      page_icon_name: "Mail",
+      page_link: "/store-settings",
+      page_name: "Store Settings",
+    },
+    {
+      id: 24,
+      app_name: "amogaappz",
+      page_icon_name: "Mail",
+      page_link: "/langchain-chat/chat",
+      page_name: "Langchain Chat",
+    },
   ];
 
   return (

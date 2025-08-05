@@ -1,43 +1,56 @@
 "use client";
 
+import { updateChatVisibility } from "@/app/(authenticated)/my-gpt/actions";
+import { VisibilityType } from "@/components/chat/visibility-selector";
+import { Chat } from "@/lib/db/schema";
 import { useMemo } from "react";
 import useSWR, { useSWRConfig } from "swr";
-import { unstable_serialize } from "swr/infinite";
-import { updateChatVisibility } from "@/app/(authenticated)/own-gpt/actions";
-import {
-  getChatHistoryPaginationKey,
-  type ChatHistory,
-} from "@/components/chat/sidebar-history";
-import type { VisibilityType } from "@/components/chat/visibility-selector";
 
 export function useChatVisibility({
   chatId,
-  initialVisibilityType,
+  initialVisibility,
 }: {
   chatId: string;
-  initialVisibilityType: VisibilityType;
+  initialVisibility: VisibilityType;
 }) {
   const { mutate, cache } = useSWRConfig();
-  const history: ChatHistory = cache.get("/own-gpt/api/history")?.data;
+  const history: Array<Chat> = cache.get("/my-gpt/api/history")?.data;
 
   const { data: localVisibility, mutate: setLocalVisibility } = useSWR(
     `${chatId}-visibility`,
     null,
     {
-      fallbackData: initialVisibilityType,
+      fallbackData: initialVisibility,
     }
   );
 
   const visibilityType = useMemo(() => {
     if (!history) return localVisibility;
-    const chat = history.chats.find((chat) => chat.id === chatId);
+    const chat = history.find((chat) => chat.id === chatId);
     if (!chat) return "private";
     return chat.visibility;
   }, [history, chatId, localVisibility]);
 
   const setVisibilityType = (updatedVisibilityType: VisibilityType) => {
     setLocalVisibility(updatedVisibilityType);
-    mutate(unstable_serialize(getChatHistoryPaginationKey));
+
+    mutate<Array<Chat>>(
+      "/my-gpt/api/history",
+      (history) => {
+        return history
+          ? history.map((chat) => {
+              if (chat.id === chatId) {
+                return {
+                  ...chat,
+                  visibility: updatedVisibilityType,
+                };
+              }
+              return chat;
+            })
+          : [];
+      },
+      { revalidate: false }
+    );
 
     updateChatVisibility({
       chatId: chatId,

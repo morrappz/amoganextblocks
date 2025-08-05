@@ -488,7 +488,7 @@ export default function AnalyticChat({
     },
     [messages]
   );
-
+  console.log("messages-----", messages);
   return (
     <div className="flex flex-col h-full max-h-screen">
       <ChatHeader

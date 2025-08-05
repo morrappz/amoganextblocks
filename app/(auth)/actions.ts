@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { signIn } from "@/auth";
 import { postgrest } from "@/lib/postgrest";
+import { saveUserLogs } from "@/utils/userLogs";
 
 const authFormSchema = z.object({
   email: z.string().email(),
@@ -42,6 +43,22 @@ export const login = async (
       redirect: false,
     });
 
+    await saveUserLogs({
+      status: "Login Success",
+      description: "Login Success",
+      // user_ip_address: await IpAddress(),
+      // browser: getCurrentBrowser(),
+      // device: getUserOS(),
+      // geo_location: await getUserLocation(),
+      http_method: "POST",
+      response_payload: {
+        email: validatedData.email,
+        password: validatedData.password,
+      },
+      // operating_system: getUserOS(),
+      app_name: "Amoga Next Blocks",
+    });
+
     return { status: "success" };
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -69,7 +86,8 @@ export const register = async (
   try {
     const validatedData = authRegisterFormSchema.parse(formData);
 
-    const { data: user } = await postgrest.asAdmin()
+    const { data: user } = await postgrest
+      .asAdmin()
       .from("user_catalog")
       .select("*")
       .eq("user_email", validatedData.user_email)
@@ -77,7 +95,8 @@ export const register = async (
     if (user) {
       return { status: "user_exists" } as RegisterActionState;
     } else {
-      const { error: insertError } = await postgrest.asAdmin()
+      const { error: insertError } = await postgrest
+        .asAdmin()
         .from("user_catalog")
         .insert(validatedData);
 
