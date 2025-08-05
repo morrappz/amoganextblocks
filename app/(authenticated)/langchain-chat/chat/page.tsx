@@ -1,13 +1,5 @@
 import { ChatWindow } from "@/components/chat/ChatWindow";
 import { GuideInfoBox } from "@/components/chat/GuideInfoBox";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { History, Menu, Plus, Star } from "lucide-react";
 
 export default function Home() {
   const InfoCard = (
@@ -60,6 +52,7 @@ export default function Home() {
       </ul>
     </GuideInfoBox>
   );
+
   return (
     <div className="w-full  max-w-[800px] mx-auto ">
       <ChatWindow

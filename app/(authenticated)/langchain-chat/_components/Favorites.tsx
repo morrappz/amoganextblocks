@@ -22,12 +22,17 @@ export interface Props {
   createdAt: string;
 }
 
-const Favorites = () => {
-  const [favorites, setFavorites] = React.useState<Props[]>([]);
+const Favorites = ({
+  favorites,
+  onFavoriteUpdate,
+}: {
+  favorites: Props[];
+  onFavoriteUpdate: () => void;
+}) => {
   const handleDelete = async (id: string) => {
     try {
       await deleteChat(id);
-      fetchBookmarks();
+      onFavoriteUpdate();
       toast.success("Chat deleted successfully");
     } catch (error) {
       toast.error(`Error deleting chat ${error}`);
@@ -39,7 +44,7 @@ const Favorites = () => {
     try {
       const data = await getChatFavorites("LangStarter");
 
-      setFavorites(data);
+      // setFavorites(data);
     } catch (error) {
       toast.error(`Error ${error}`);
       throw error;
@@ -48,7 +53,7 @@ const Favorites = () => {
 
   React.useEffect(() => {
     fetchBookmarks();
-  }, []);
+  }, [fetchBookmarks]);
 
   return (
     <div>
@@ -60,7 +65,7 @@ const Favorites = () => {
         </DropdownMenuTrigger>
         <DropdownMenuContent>
           <DropdownMenuGroup className="md:max-h-[400px] overflow-y-auto md:max-w-[300px]">
-            {favorites?.length > 0 &&
+            {favorites?.length > 0 ? (
               favorites.map((item) => (
                 <DropdownMenuItem
                   className="bg-muted  overflow-y-auto mb-2"
@@ -83,7 +88,10 @@ const Favorites = () => {
                     </div>
                   </div>
                 </DropdownMenuItem>
-              ))}
+              ))
+            ) : (
+              <div>No data avaliable</div>
+            )}
           </DropdownMenuGroup>
         </DropdownMenuContent>
       </DropdownMenu>

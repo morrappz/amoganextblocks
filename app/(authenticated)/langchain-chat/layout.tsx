@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import MenuActions from "./_components/MenuActions";
+// import MenuActions from "./_components/MenuActions";
 import { History } from "lucide-react";
 
 export default async function AuthenticatedLayout({
@@ -21,9 +21,9 @@ export default async function AuthenticatedLayout({
           "group-data-[scroll-locked=1]/body:has-[main.fixed-main]:h-svh"
         )}
       >
-        <div className="flex justify-end">
+        {/* <div className="flex justify-end">
           <MenuActions />
-        </div>
+        </div> */}
         <div className="relative pr-3 pl-3 flex-1">{children}</div>
       </div>
     </div>

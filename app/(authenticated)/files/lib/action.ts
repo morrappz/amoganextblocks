@@ -54,7 +54,7 @@ export async function getChatHistory() {
       .from("chat")
       .select("*")
       .eq("user_id", userId)
-      .eq("chat_group","Chat with Analytic Agent");
+      .eq("chat_group", "Chat with Analytic Agent");
     if (error) throw error;
     return data;
   } catch (error) {

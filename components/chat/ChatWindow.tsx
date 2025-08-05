@@ -4,7 +4,7 @@
 // import { type Message } from "ai";
 import { useChat } from "ai/react";
 import { useEffect, useState } from "react";
-import type { FormEvent, ReactNode } from "react";
+import type { Dispatch, FormEvent, ReactNode, SetStateAction } from "react";
 import { toast } from "sonner";
 import { StickToBottom, useStickToBottomContext } from "use-stick-to-bottom";
 
@@ -15,11 +15,13 @@ import {
   ArrowDown,
   ArrowUp,
   Bot,
+  Coins,
   FileJson,
   Globe,
   LoaderCircle,
   MessageCircle,
   Paperclip,
+  Plus,
   Settings2,
 } from "lucide-react";
 import { Checkbox } from "../ui/checkbox";
@@ -37,7 +39,10 @@ import {
   createChat,
   saveMessage,
   getMessagesByChatId,
-  updateMessageStatus, // Add this function to your actions
+  updateMessageStatus,
+  getChatBookMarks,
+  getChatHistory,
+  getChatFavorites, // Add this function to your actions
 } from "@/app/(authenticated)/langchain-chat/lib/actions";
 import { useSession } from "next-auth/react";
 import { v4 as uuidv4 } from "uuid";
@@ -49,6 +54,13 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import Link from "next/link";
+import { saveUserLogs } from "@/utils/userLogs";
+import getCurrentBrowser from "@/utils/getCurrentBrowser";
+import getUserOS from "@/utils/getCurrentOS";
+import getUserLocation from "@/utils/geoLocation";
+import BookMark from "@/app/(authenticated)/langchain-chat/_components/Bookmark";
+import Favorites from "@/app/(authenticated)/langchain-chat/_components/Favorites";
+import HistoryView from "@/app/(authenticated)/langchain-chat/_components/History";
 
 type Message = {
   id: string;
@@ -67,9 +79,19 @@ function ChatMessages(props: {
   aiEmoji?: string;
   className?: string;
   onUpdateMessage: (messageId: string, updates: Partial<Message>) => void;
+  setBookmarks: Dispatch<SetStateAction<never[]>>;
+  setFavorites: Dispatch<SetStateAction<never[]>>;
 }) {
+  const handleBookmarkUpdate = async () => {
+    const updatedBookmarks = await getChatBookMarks("LangStarter");
+    props.setBookmarks(updatedBookmarks);
+  };
+  const handleFavoriteUpdate = async () => {
+    const updatedBookmarks = await getChatFavorites("LangStarter");
+    props.setFavorites(updatedBookmarks);
+  };
   return (
-    <div className="flex flex-col max-w-[768px] mx-auto pb-12 w-full">
+    <div className="flex flex-col mt-5 max-w-[768px] mx-auto pb-12 w-full">
       {props.messages.map((m, i) => {
         if (m.role === "system") {
           return <IntermediateStep key={m.id} message={m} />;
@@ -83,6 +105,8 @@ function ChatMessages(props: {
             aiEmoji={props.aiEmoji}
             sources={props.sourcesForMessages[sourceKey]}
             onUpdateMessage={props.onUpdateMessage}
+            onBookmarkUpdate={handleBookmarkUpdate}
+            onFavoriteUpdate={handleFavoriteUpdate}
           />
         );
       })}
@@ -291,11 +315,11 @@ export function ChatLayout(props: { content: ReactNode; footer: ReactNode }) {
   return (
     <StickToBottom>
       <StickyToBottomContent
-        className="absolute inset-0 "
+        className="absolute inset-0"
         contentClassName="py-8 px-2"
         content={props.content}
         footer={
-          <div className="sticky bottom-8 px-2">
+          <div className="sticky  bottom-8 px-2">
             <ScrollToBottom className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4" />
             {props.footer}
           </div>
@@ -327,6 +351,59 @@ export function ChatWindow(props: {
   const [sourcesForMessages, setSourcesForMessages] = useState<
     Record<string, any>
   >({});
+  const [bookmarks, setBookmarks] = useState([]);
+  const [history, setHistory] = useState([]);
+  const [favorites, setFavorites] = useState([]);
+
+  const handleHistory = async () => {
+    try {
+      const historyData = await getChatHistory("LangStarter");
+      setHistory(historyData);
+    } catch (error) {
+      console.error("Error fetching history:", error);
+      toast.error("Failed to update history");
+    }
+  };
+
+  // Fetch initial data when component mounts
+  useEffect(() => {
+    const fetchInitialData = async () => {
+      try {
+        // Fetch bookmarks
+        const bookmarksData = await getChatBookMarks("LangStarter");
+        setBookmarks(bookmarksData);
+
+        // Fetch favorites
+        const favoritesData = await getChatFavorites("LangStarter");
+        setFavorites(favoritesData);
+      } catch (error) {
+        console.error("Error fetching initial data:", error);
+        toast.error("Failed to load initial data");
+      }
+    };
+
+    fetchInitialData();
+    handleHistory();
+  }, []);
+
+  useEffect(() => {
+    const saveLogs = async () => {
+      try {
+        await saveUserLogs({
+          status: "Success",
+          description: "Langchain-Chat Page viewed",
+          event_type: "Langchain-Chat Page viewed",
+          browser: getCurrentBrowser(),
+          device: getUserOS(),
+          geo_location: await getUserLocation(),
+          operating_system: getUserOS(),
+        });
+      } catch (error) {
+        throw error;
+      }
+    };
+    saveLogs();
+  }, []);
 
   const { data: session } = useSession();
 
@@ -357,26 +434,59 @@ export function ChatWindow(props: {
       }),
     onFinish: async (message) => {
       console.log("onFinish message-----", message);
-      // Only save if we're not showing intermediate steps (to avoid double saving)
-      if (currentChatId && message.role === "assistant") {
-        console.log("heere--------------");
+      // Save assistant messages to the database
+      if (message.role === "assistant") {
         try {
-          await saveMessage({
-            id: message.id,
-            chatId: currentChatId,
-            role: message.role,
-            content: message.content,
-            chat_group: "LangStarter",
-            status: "active",
-            user_id: session?.user?.user_catalog_id,
-            createdAt: new Date().toISOString(),
+          let chatIdToUse = currentChatId;
+          if (!chatIdToUse) {
+            const pathParts = window.location.pathname.split("/");
+            const chatIdFromUrl = pathParts[pathParts.length - 1];
+            chatIdToUse =
+              chatIdFromUrl && chatIdFromUrl !== "chat"
+                ? chatIdFromUrl
+                : uuidv4();
+          }
+
+          // Create a properly typed message object
+          const messageToSave = {
+            id: message.id || `msg-${Date.now()}`,
+            role: "assistant",
+            content: message.content || "",
             isLike: false,
             bookmark: false,
             favorite: false,
+            createdAt: new Date(),
+          };
+
+          // Save the message to the database
+          await saveMessage({
+            id: messageToSave.id,
+            chatId: chatIdToUse,
+            role: messageToSave.role,
+            content: messageToSave.content,
+            chat_group: "LangStarter",
+            status: "active",
+            user_id: session?.user?.user_catalog_id || "",
+            createdAt: new Date().toISOString(),
+            isLike: messageToSave.isLike,
+            bookmark: messageToSave.bookmark,
+            favorite: messageToSave.favorite,
           });
+          handleHistory();
         } catch (error) {
-          console.error("Failed to save assistant message", error);
+          console.error("Failed to save assistant message:", error);
           toast.error("Failed to save assistant message");
+          await saveUserLogs({
+            status: "failure",
+            description: "Assistant message failed to save",
+            event_type: "Assistant message save failed",
+            browser: getCurrentBrowser(),
+            device: getUserOS(),
+            geo_location: await getUserLocation(),
+            operating_system: getUserOS(),
+            response_error: true,
+            error_message: error,
+          });
         }
       }
     },
@@ -667,71 +777,107 @@ export function ChatWindow(props: {
       </div>
     );
   }
+  const handleBookmarkUpdate = async () => {
+    const updatedBookmarks = await getChatBookMarks("LangStarter");
+    setBookmarks(updatedBookmarks);
+  };
+  const handleHistoryUpdate = async () => {
+    const updatedHistory = await getChatHistory("LangStarter");
+    setHistory(updatedHistory);
+  };
+  const handleFavoritesUpdate = async () => {
+    const updatedBookmarks = await getChatFavorites("LangStarter");
+    setFavorites(updatedBookmarks);
+  };
   console.log("messages-----", chat.messages);
   return (
-    <ChatLayout
-      content={
-        chat.messages.length === 0 ? (
-          <div>{props.emptyStateComponent}</div>
-        ) : (
-          <ChatMessages
-            aiEmoji={props.emoji}
-            messages={chat.messages}
-            emptyStateComponent={props.emptyStateComponent}
-            sourcesForMessages={sourcesForMessages}
-            onUpdateMessage={handleUpdateMessage}
+    <div className="flex-1">
+      <div className="flex items-center">
+        <div className=" w-full justify-end items-center flex   z-50">
+          <Coins className="text-yellow-500" />
+          <HistoryView
+            history={history}
+            onHistoryUpdate={handleHistoryUpdate}
           />
-        )
-      }
-      footer={
-        <ChatInput
-          value={chat.input}
-          onChange={chat.handleInputChange}
-          onSubmit={sendMessage}
-          loading={chat.isLoading || intermediateStepsLoading}
-          placeholder={props.placeholder ?? "What's it like to be a pirate?"}
-          setSelectedLanguage={setSelectedLanguage}
-        >
-          {props.showIngestForm && (
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button
-                  variant="ghost"
-                  className="pl-2 pr-3 -ml-2"
-                  disabled={chat.messages.length !== 0}
-                >
-                  <Paperclip className="size-4" />
-                  <span>Upload document</span>
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Upload document</DialogTitle>
-                  <DialogDescription>
-                    Upload a document to use for the chat.
-                  </DialogDescription>
-                </DialogHeader>
-                <UploadDocumentsForm />
-              </DialogContent>
-            </Dialog>
-          )}
+          <BookMark
+            bookmarks={bookmarks}
+            onBookmarkUpdate={handleBookmarkUpdate}
+          />
+          <Favorites
+            favorites={favorites}
+            onFavoriteUpdate={handleFavoritesUpdate}
+          />
+          <Link href="/langchain-chat/chat">
+            <Plus className=" text-muted-foreground" />
+          </Link>
+        </div>
+      </div>
+      <ChatLayout
+        content={
+          chat.messages.length === 0 ? (
+            <div>{props.emptyStateComponent}</div>
+          ) : (
+            <ChatMessages
+              aiEmoji={props.emoji}
+              messages={chat.messages}
+              emptyStateComponent={props.emptyStateComponent}
+              sourcesForMessages={sourcesForMessages}
+              onUpdateMessage={handleUpdateMessage}
+              setBookmarks={setBookmarks}
+              setFavorites={setFavorites}
+            />
+          )
+        }
+        footer={
+          <ChatInput
+            value={chat.input}
+            onChange={chat.handleInputChange}
+            onSubmit={sendMessage}
+            loading={chat.isLoading || intermediateStepsLoading}
+            placeholder={props.placeholder ?? "What's it like to be a pirate?"}
+            setSelectedLanguage={setSelectedLanguage}
+          >
+            {props.showIngestForm && (
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className="pl-2 pr-3 -ml-2"
+                    disabled={chat.messages.length !== 0}
+                  >
+                    <Paperclip className="size-4" />
+                    <span>Upload document</span>
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Upload document</DialogTitle>
+                    <DialogDescription>
+                      Upload a document to use for the chat.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <UploadDocumentsForm />
+                </DialogContent>
+              </Dialog>
+            )}
 
-          {props.showIntermediateStepsToggle && (
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="show_intermediate_steps"
-                name="show_intermediate_steps"
-                checked={showIntermediateSteps}
-                disabled={chat.isLoading || intermediateStepsLoading}
-                onCheckedChange={(e) => setShowIntermediateSteps(!!e)}
-              />
-              <label htmlFor="show_intermediate_steps" className="text-sm">
-                Show intermediate steps
-              </label>
-            </div>
-          )}
-        </ChatInput>
-      }
-    />
+            {props.showIntermediateStepsToggle && (
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="show_intermediate_steps"
+                  name="show_intermediate_steps"
+                  checked={showIntermediateSteps}
+                  disabled={chat.isLoading || intermediateStepsLoading}
+                  onCheckedChange={(e) => setShowIntermediateSteps(!!e)}
+                />
+                <label htmlFor="show_intermediate_steps" className="text-sm">
+                  Show intermediate steps
+                </label>
+              </div>
+            )}
+          </ChatInput>
+        }
+      />
+    </div>
   );
 }

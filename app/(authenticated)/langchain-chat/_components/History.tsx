@@ -11,16 +11,31 @@ import { formatDate } from "@/lib/utils";
 import { History, Trash } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { deleteChat } from "../lib/actions";
-import { HistoryProps } from "./MenuActions";
+import { deleteChat, getChatHistory } from "../lib/actions";
+
 import React from "react";
-
-interface PageProps {
-  history: HistoryProps[];
-  fetchHistory: () => Promise<void>;
+interface HistoryProps {
+  id: string;
+  title: string;
+  createdAt: string;
 }
-
-const HistoryView = ({ history, fetchHistory }: PageProps) => {
+const HistoryView = ({
+  history,
+  onHistoryUpdate,
+}: {
+  history: HistoryProps[];
+  onHistoryUpdate: () => Promise<void>;
+}) => {
+  const fetchHistory = React.useCallback(async () => {
+    try {
+      const data = await getChatHistory("LangStarter");
+      onHistoryUpdate();
+      // setHistory(data);
+    } catch (error) {
+      toast.error(`Error ${error}`);
+      throw error;
+    }
+  }, [onHistoryUpdate]);
   const handleDelete = async (id: string) => {
     try {
       await deleteChat(id);
@@ -34,7 +49,7 @@ const HistoryView = ({ history, fetchHistory }: PageProps) => {
 
   React.useEffect(() => {
     fetchHistory();
-  }, []);
+  }, [fetchHistory]);
 
   return (
     <div>
@@ -44,8 +59,8 @@ const HistoryView = ({ history, fetchHistory }: PageProps) => {
             <History className="w-5 h-5 text-muted-foreground" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent>
-          <DropdownMenuGroup className="md:max-h-[400px] overflow-y-auto md:max-w-[300px]">
+        <DropdownMenuContent className="w-[300px]" side="bottom" align="end">
+          <DropdownMenuGroup className="md:max-h-[400px]  overflow-y-auto">
             {history?.length > 0 &&
               history.map((item) => (
                 <DropdownMenuItem

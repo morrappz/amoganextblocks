@@ -46,6 +46,7 @@ export const login = async (
     await saveUserLogs({
       status: "Login Success",
       description: "Login Success",
+      event_type: "Login Success",
       // user_ip_address: await IpAddress(),
       // browser: getCurrentBrowser(),
       // device: getUserOS(),
@@ -61,6 +62,11 @@ export const login = async (
 
     return { status: "success" };
   } catch (error) {
+    await saveUserLogs({
+      status: "failure",
+      description: "Login Failure",
+      event_type: "Login Failure",
+    });
     if (error instanceof z.ZodError) {
       return { status: "invalid_data" };
     }

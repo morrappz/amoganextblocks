@@ -22,15 +22,21 @@ export interface Props {
   createdAt: string;
 }
 
-const BookMark = () => {
-  const [bookMarks, setBookMarks] = React.useState<Props[]>([]);
+const BookMark = ({
+  bookmarks,
+  onBookmarkUpdate,
+}: {
+  bookmarks: Props[];
+  onBookmarkUpdate: () => void;
+}) => {
+  // const [bookMarks, setBookMarks] = React.useState<Props[]>([]);
   const handleDelete = async (id: string) => {
     try {
       await deleteChat(id);
-      fetchBookmarks();
-      toast.success("Chat deleted successfully");
+      onBookmarkUpdate();
+      toast.success("Bookmark removed successfully");
     } catch (error) {
-      toast.error(`Error deleting chat ${error}`);
+      toast.error(`Error removing bookmark: ${error}`);
       throw error;
     }
   };
@@ -38,8 +44,8 @@ const BookMark = () => {
   const fetchBookmarks = React.useCallback(async () => {
     try {
       const data = await getChatBookMarks("LangStarter");
-      console.log("bok------", bookMarks);
-      setBookMarks(data);
+
+      // setBookMarks(data);
     } catch (error) {
       toast.error(`Error ${error}`);
       throw error;
@@ -48,7 +54,7 @@ const BookMark = () => {
 
   React.useEffect(() => {
     fetchBookmarks();
-  }, []);
+  }, [fetchBookmarks]);
 
   return (
     <div>
@@ -60,8 +66,8 @@ const BookMark = () => {
         </DropdownMenuTrigger>
         <DropdownMenuContent>
           <DropdownMenuGroup className="md:max-h-[400px] overflow-y-auto md:max-w-[300px]">
-            {bookMarks?.length > 0 &&
-              bookMarks.map((item) => (
+            {bookmarks?.length > 0 ? (
+              bookmarks.map((item) => (
                 <DropdownMenuItem
                   className="bg-muted  overflow-y-auto mb-2"
                   key={item.id}
@@ -83,7 +89,12 @@ const BookMark = () => {
                     </div>
                   </div>
                 </DropdownMenuItem>
-              ))}
+              ))
+            ) : (
+              <div>
+                <h1>No data avaliable</h1>
+              </div>
+            )}
           </DropdownMenuGroup>
         </DropdownMenuContent>
       </DropdownMenu>

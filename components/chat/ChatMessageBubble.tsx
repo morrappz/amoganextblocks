@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import { getChatBookMarks } from "@/app/(authenticated)/langchain-chat/lib/actions";
 import { cn } from "@/utils/cn";
 import { AlarmClockCheck, Bookmark, Copy, Heart, Star } from "lucide-react";
 import React from "react";
@@ -20,6 +21,8 @@ interface Props {
   aiEmoji?: string;
   sources: any[];
   onUpdateMessage: (messageId: string, updates: Partial<Message>) => void;
+  onBookmarkUpdate?: () => void;
+  onFavoriteUpdate?: () => void;
 }
 
 export function ChatMessageBubble(props: Props) {
@@ -29,12 +32,14 @@ export function ChatMessageBubble(props: Props) {
     onUpdateMessage(message.id, {
       bookmark: !message.bookmark,
     });
+    props.onBookmarkUpdate?.();
   };
 
   const handleFavorite = () => {
     onUpdateMessage(message.id, {
       favorite: !message.favorite,
     });
+    props.onFavoriteUpdate?.();
   };
 
   const handleCopy = () => {
