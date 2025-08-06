@@ -58,12 +58,12 @@ import { saveUserLogs } from "@/utils/userLogs";
 import getCurrentBrowser from "@/utils/getCurrentBrowser";
 import getUserOS from "@/utils/getCurrentOS";
 import getUserLocation from "@/utils/geoLocation";
-import BookMark from "@/app/(authenticated)/langchain-chat/_components/Bookmark";
-import Favorites from "@/app/(authenticated)/langchain-chat/_components/Favorites";
-import HistoryView from "@/app/(authenticated)/langchain-chat/_components/History";
 import { ChatInput } from "./ChatInput";
 import { ChatLayout } from "./ChatLayout";
 import { ChatMessages } from "./ChatMessages";
+import History from "./MenuItems/History";
+import BookMark from "./MenuItems/Bookmark";
+import Favorites from "./MenuItems/Favorites";
 
 type Message = {
   id: string;
@@ -365,6 +365,75 @@ export function ChatWindow(props: {
   const [sourcesForMessages, setSourcesForMessages] = useState<
     Record<string, any>
   >({});
+
+  const [history, setHistory] = useState([]);
+  const [bookmarks, setBookMarks] = useState([]);
+  const [favorites, setFavorites] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [bookMarkLoading, setBookMarkLoading] = useState(false);
+  const [favoriteLoading, setFavoriteLoading] = useState(false);
+
+  // Fetch history when dropdown opens
+  const fetchHistory = async () => {
+    if (historyLoading) return; // Prevent multiple calls
+
+    setHistoryLoading(true);
+    try {
+      const response = await getChatHistory("LangStarter");
+      setHistory(response);
+    } catch (error) {
+      console.error("Error fetching history:", error);
+      toast.error("Error fetching History");
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  // Fetch Bookmarks
+
+  const fetchBookMarks = async () => {
+    if (bookMarkLoading) return;
+    setBookMarkLoading(true);
+    try {
+      const response = await getChatBookMarks("LangStarter");
+      setBookMarks(response);
+    } catch (error) {
+      console.error("Error fetching Bookmarks:", error);
+      toast.error("Error fetching Bookmarks");
+      throw error;
+    } finally {
+      setBookMarkLoading(false);
+    }
+  };
+
+  const fetchFavorites = async () => {
+    if (favoriteLoading) return; // Fixed: was checking bookMarkLoading instead of favoriteLoading
+    setFavoriteLoading(true);
+    try {
+      const response = await getChatFavorites("LangStarter");
+      setFavorites(response);
+    } catch (error) {
+      console.error("Error fetching Favorites:", error);
+      toast.error("Error fetching Favorites");
+      throw error;
+    } finally {
+      setFavoriteLoading(false);
+    }
+  };
+
+  // Function to refresh history after operations like delete
+  const refreshHistory = async () => {
+    await fetchHistory();
+  };
+
+  const refreshBookMarks = async () => {
+    await fetchBookMarks();
+  };
+
+  const refreshFavorites = async () => {
+    await fetchFavorites();
+  };
+
   // const [bookmarks, setBookmarks] = useState([]);
   // const [history, setHistory] = useState([]);
   // const [favorites, setFavorites] = useState([]);
@@ -448,7 +517,6 @@ export function ChatWindow(props: {
         description: e.message,
       }),
     onFinish: async (message) => {
-      console.log("onFinish message-----", message);
       // Save assistant messages to the database
       if (message.role === "assistant") {
         try {
@@ -556,7 +624,6 @@ export function ChatWindow(props: {
       if (props.chatId && session?.user?.user_catalog_id) {
         try {
           const existingMessages = await getMessagesByChatId(props.chatId);
-          console.log("existingmessages-----", existingMessages);
           if (existingMessages && existingMessages.length > 0) {
             // Convert database messages to useChat format
             const formattedMessages: Message[] = existingMessages.map(
@@ -607,6 +674,11 @@ export function ChatWindow(props: {
         "",
         `/langchain-chat/chat/${newChatId}`
       );
+
+      // Refresh history after creating new chat
+      setTimeout(() => {
+        refreshHistory();
+      }, 500); // Small delay to ensure the chat is saved
 
       return newChatId;
     } catch (error) {
@@ -815,6 +887,24 @@ export function ChatWindow(props: {
         </div>
         <div className=" w-full justify-end items-center flex  gap-2.5 z-50">
           <Coins className="text-yellow-500" />
+          <History
+            history={history}
+            onDropdownOpen={fetchHistory}
+            onHistoryUpdate={refreshHistory}
+            loading={historyLoading}
+          />
+          <BookMark
+            bookmarks={bookmarks}
+            onDropdownOpen={fetchBookMarks}
+            onBookMarkUpdate={refreshBookMarks}
+            loading={bookMarkLoading}
+          />
+          <Favorites
+            favorites={favorites}
+            onDropdownOpen={fetchFavorites}
+            onFavoriteUpdate={refreshFavorites}
+            loading={favoriteLoading}
+          />
           {/* <HistoryView
             history={history}
             onHistoryUpdate={handleHistoryUpdate}
