@@ -79,17 +79,17 @@ function ChatMessages(props: {
   aiEmoji?: string;
   className?: string;
   onUpdateMessage: (messageId: string, updates: Partial<Message>) => void;
-  setBookmarks: Dispatch<SetStateAction<never[]>>;
-  setFavorites: Dispatch<SetStateAction<never[]>>;
+  // setBookmarks: Dispatch<SetStateAction<never[]>>;
+  // setFavorites: Dispatch<SetStateAction<never[]>>;
 }) {
-  const handleBookmarkUpdate = async () => {
-    const updatedBookmarks = await getChatBookMarks("LangStarter");
-    props.setBookmarks(updatedBookmarks);
-  };
-  const handleFavoriteUpdate = async () => {
-    const updatedBookmarks = await getChatFavorites("LangStarter");
-    props.setFavorites(updatedBookmarks);
-  };
+  // const handleBookmarkUpdate = async () => {
+  //   const updatedBookmarks = await getChatBookMarks("LangStarter");
+  //   props.setBookmarks(updatedBookmarks);
+  // };
+  // const handleFavoriteUpdate = async () => {
+  //   const updatedBookmarks = await getChatFavorites("LangStarter");
+  //   props.setFavorites(updatedBookmarks);
+  // };
   return (
     <div className="flex flex-col mt-5 max-w-[768px] mx-auto pb-12 w-full">
       {props.messages.map((m, i) => {
@@ -105,8 +105,8 @@ function ChatMessages(props: {
             aiEmoji={props.aiEmoji}
             sources={props.sourcesForMessages[sourceKey]}
             onUpdateMessage={props.onUpdateMessage}
-            onBookmarkUpdate={handleBookmarkUpdate}
-            onFavoriteUpdate={handleFavoriteUpdate}
+            // onBookmarkUpdate={handleBookmarkUpdate}
+            // onFavoriteUpdate={handleFavoriteUpdate}
           />
         );
       })}
@@ -351,40 +351,40 @@ export function ChatWindow(props: {
   const [sourcesForMessages, setSourcesForMessages] = useState<
     Record<string, any>
   >({});
-  const [bookmarks, setBookmarks] = useState([]);
-  const [history, setHistory] = useState([]);
-  const [favorites, setFavorites] = useState([]);
+  // const [bookmarks, setBookmarks] = useState([]);
+  // const [history, setHistory] = useState([]);
+  // const [favorites, setFavorites] = useState([]);
 
-  const handleHistory = async () => {
-    try {
-      const historyData = await getChatHistory("LangStarter");
-      setHistory(historyData);
-    } catch (error) {
-      console.error("Error fetching history:", error);
-      toast.error("Failed to update history");
-    }
-  };
+  // const handleHistory = async () => {
+  //   try {
+  //     const historyData = await getChatHistory("LangStarter");
+  //     setHistory(historyData);
+  //   } catch (error) {
+  //     console.error("Error fetching history:", error);
+  //     toast.error("Failed to update history");
+  //   }
+  // };
 
-  // Fetch initial data when component mounts
-  useEffect(() => {
-    const fetchInitialData = async () => {
-      try {
-        // Fetch bookmarks
-        const bookmarksData = await getChatBookMarks("LangStarter");
-        setBookmarks(bookmarksData);
+  // // Fetch initial data when component mounts
+  // useEffect(() => {
+  //   const fetchInitialData = async () => {
+  //     try {
+  //       // Fetch bookmarks
+  //       const bookmarksData = await getChatBookMarks("LangStarter");
+  //       setBookmarks(bookmarksData);
 
-        // Fetch favorites
-        const favoritesData = await getChatFavorites("LangStarter");
-        setFavorites(favoritesData);
-      } catch (error) {
-        console.error("Error fetching initial data:", error);
-        toast.error("Failed to load initial data");
-      }
-    };
+  //       // Fetch favorites
+  //       const favoritesData = await getChatFavorites("LangStarter");
+  //       setFavorites(favoritesData);
+  //     } catch (error) {
+  //       console.error("Error fetching initial data:", error);
+  //       toast.error("Failed to load initial data");
+  //     }
+  //   };
 
-    fetchInitialData();
-    handleHistory();
-  }, []);
+  //   fetchInitialData();
+  //   handleHistory();
+  // }, []);
 
   useEffect(() => {
     const saveLogs = async () => {
@@ -472,7 +472,7 @@ export function ChatWindow(props: {
             bookmark: messageToSave.bookmark,
             favorite: messageToSave.favorite,
           });
-          handleHistory();
+          // handleHistory();
         } catch (error) {
           console.error("Failed to save assistant message:", error);
           toast.error("Failed to save assistant message");
@@ -777,23 +777,23 @@ export function ChatWindow(props: {
       </div>
     );
   }
-  const handleBookmarkUpdate = async () => {
-    const updatedBookmarks = await getChatBookMarks("LangStarter");
-    setBookmarks(updatedBookmarks);
-  };
-  const handleHistoryUpdate = async () => {
-    const updatedHistory = await getChatHistory("LangStarter");
-    setHistory(updatedHistory);
-  };
-  const handleFavoritesUpdate = async () => {
-    const updatedBookmarks = await getChatFavorites("LangStarter");
-    setFavorites(updatedBookmarks);
-  };
-  console.log("messages-----", chat.messages);
+  // const handleBookmarkUpdate = async () => {
+  //   const updatedBookmarks = await getChatBookMarks("LangStarter");
+  //   setBookmarks(updatedBookmarks);
+  // };
+  // const handleHistoryUpdate = async () => {
+  //   const updatedHistory = await getChatHistory("LangStarter");
+  //   setHistory(updatedHistory);
+  // };
+  // const handleFavoritesUpdate = async () => {
+  //   const updatedBookmarks = await getChatFavorites("LangStarter");
+  //   setFavorites(updatedBookmarks);
+  // };
+  // console.log("messages-----", chat.messages);
   return (
     <div className="flex-1">
       <div className="flex items-center">
-        <div className=" w-full justify-end items-center flex   z-50">
+        {/* <div className=" w-full justify-end items-center flex   z-50">
           <Coins className="text-yellow-500" />
           <HistoryView
             history={history}
@@ -810,7 +810,7 @@ export function ChatWindow(props: {
           <Link href="/langchain-chat/chat">
             <Plus className=" text-muted-foreground" />
           </Link>
-        </div>
+        </div> */}
       </div>
       <ChatLayout
         content={
@@ -823,8 +823,8 @@ export function ChatWindow(props: {
               emptyStateComponent={props.emptyStateComponent}
               sourcesForMessages={sourcesForMessages}
               onUpdateMessage={handleUpdateMessage}
-              setBookmarks={setBookmarks}
-              setFavorites={setFavorites}
+              // setBookmarks={setBookmarks}
+              // setFavorites={setFavorites}
             />
           )
         }
