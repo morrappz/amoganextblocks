@@ -564,6 +564,25 @@
   /* Thumb color and track color */
 }
 
+.my-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  font-size: 0.9rem;
+}
+
+.my-table th,
+.my-table td {
+  border: 1px solid #ccc;
+  padding: 8px 12px;
+  text-align: left;
+}
+
+.my-table th {
+  background-color: #f2f2f2;
+  font-weight: bold;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

@@ -1,10 +1,10 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import { getChatBookMarks } from "@/app/(authenticated)/langchain-chat/lib/actions";
 import { cn } from "@/utils/cn";
 import { AlarmClockCheck, Bookmark, Copy, Heart, Star } from "lucide-react";
 import React from "react";
 import { toast } from "sonner";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 type Message = {
   id: string;
@@ -64,7 +64,21 @@ export function ChatMessageBubble(props: Props) {
       )}
 
       <div className="whitespace-pre-wrap flex flex-col">
-        <span>{message.content}</span>
+        <ReactMarkdown
+          remarkPlugins={[remarkGfm]}
+          components={{
+            table: ({ children }) => (
+              <table className="my-table">{children}</table>
+            ),
+            thead: ({ children }) => <thead>{children}</thead>,
+            tbody: ({ children }) => <tbody>{children}</tbody>,
+            tr: ({ children }) => <tr>{children}</tr>,
+            th: ({ children }) => <th>{children}</th>,
+            td: ({ children }) => <td>{children}</td>,
+          }}
+        >
+          {message.content}
+        </ReactMarkdown>
         {message.role === "assistant" && (
           <div className="flex items-center gap-2.5 mt-2">
             <Copy
