@@ -61,6 +61,9 @@ import getUserLocation from "@/utils/geoLocation";
 import BookMark from "@/app/(authenticated)/langchain-chat/_components/Bookmark";
 import Favorites from "@/app/(authenticated)/langchain-chat/_components/Favorites";
 import HistoryView from "@/app/(authenticated)/langchain-chat/_components/History";
+import { ChatInput } from "./ChatInput";
+import { ChatLayout } from "./ChatLayout";
+import { ChatMessages } from "./ChatMessages";
 
 type Message = {
   id: string;
@@ -72,206 +75,216 @@ type Message = {
   favorite?: boolean;
 };
 
-function ChatMessages(props: {
-  messages: Message[];
-  emptyStateComponent: ReactNode;
-  sourcesForMessages: Record<string, any>;
-  aiEmoji?: string;
-  className?: string;
-  onUpdateMessage: (messageId: string, updates: Partial<Message>) => void;
-  // setBookmarks: Dispatch<SetStateAction<never[]>>;
-  // setFavorites: Dispatch<SetStateAction<never[]>>;
-}) {
-  // const handleBookmarkUpdate = async () => {
-  //   const updatedBookmarks = await getChatBookMarks("LangStarter");
-  //   props.setBookmarks(updatedBookmarks);
-  // };
-  // const handleFavoriteUpdate = async () => {
-  //   const updatedBookmarks = await getChatFavorites("LangStarter");
-  //   props.setFavorites(updatedBookmarks);
-  // };
-  return (
-    <div className="flex flex-col mt-5 max-w-[768px] mx-auto pb-12 w-full">
-      {props.messages.map((m, i) => {
-        if (m.role === "system") {
-          return <IntermediateStep key={m.id} message={m} />;
-        }
+type IntermediateStepType = {
+  id: string;
+  role: string;
+  content: string;
+  createdAt: Date;
+  isLike: boolean;
+  bookmark: boolean;
+  favorite: boolean;
+};
 
-        const sourceKey = (props.messages.length - 1 - i).toString();
-        return (
-          <ChatMessageBubble
-            key={m.id}
-            message={m}
-            aiEmoji={props.aiEmoji}
-            sources={props.sourcesForMessages[sourceKey]}
-            onUpdateMessage={props.onUpdateMessage}
-            // onBookmarkUpdate={handleBookmarkUpdate}
-            // onFavoriteUpdate={handleFavoriteUpdate}
-          />
-        );
-      })}
-    </div>
-  );
-}
+// function ChatMessages(props: {
+//   messages: Message[];
+//   emptyStateComponent: ReactNode;
+//   sourcesForMessages: Record<string, any>;
+//   aiEmoji?: string;
+//   className?: string;
+//   onUpdateMessage: (messageId: string, updates: Partial<Message>) => void;
+//   // setBookmarks: Dispatch<SetStateAction<never[]>>;
+//   // setFavorites: Dispatch<SetStateAction<never[]>>;
+// }) {
+//   // const handleBookmarkUpdate = async () => {
+//   //   const updatedBookmarks = await getChatBookMarks("LangStarter");
+//   //   props.setBookmarks(updatedBookmarks);
+//   // };
+//   // const handleFavoriteUpdate = async () => {
+//   //   const updatedBookmarks = await getChatFavorites("LangStarter");
+//   //   props.setFavorites(updatedBookmarks);
+//   // };
+//   return (
+//     <div className="flex flex-col mt-5 -z-10 max-w-[768px] mx-auto pb-12 w-full">
+//       {props.messages.map((m, i) => {
+//         if (m.role === "system") {
+//           return <IntermediateStep key={m.id} message={m} />;
+//         }
 
-export function ChatInput(props: {
-  onSubmit: (e: FormEvent<HTMLFormElement>) => void;
-  onStop?: () => void;
-  value: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  loading?: boolean;
-  placeholder?: string;
-  children?: ReactNode;
-  className?: string;
-  actions?: ReactNode;
-  setSelectedLanguage: (value: string) => void;
-}) {
-  const disabled = props.loading && props.onStop == null;
-  return (
-    <form
-      onSubmit={(e) => {
-        e.stopPropagation();
-        e.preventDefault();
+//         const sourceKey = (props.messages.length - 1 - i).toString();
+//         return (
+//           <ChatMessageBubble
+//             key={m.id}
+//             message={m}
+//             aiEmoji={props.aiEmoji}
+//             sources={props.sourcesForMessages[sourceKey]}
+//             onUpdateMessage={props.onUpdateMessage}
+//             // onBookmarkUpdate={handleBookmarkUpdate}
+//             // onFavoriteUpdate={handleFavoriteUpdate}
+//           />
+//         );
+//       })}
+//     </div>
+//   );
+// }
 
-        if (props.loading) {
-          props.onStop?.();
-        } else {
-          props.onSubmit(e);
-        }
-      }}
-      className={cn("flex w-full flex-col", props.className)}
-    >
-      <div className="border border-input bg-secondary rounded-lg flex flex-col gap-2 max-w-[768px] w-full mx-auto">
-        <input
-          value={props.value}
-          placeholder={props.placeholder}
-          onChange={props.onChange}
-          className="border-none outline-none bg-transparent p-4"
-        />
+// export function ChatInput(props: {
+//   onSubmit: (e: FormEvent<HTMLFormElement>) => void;
+//   onStop?: () => void;
+//   value: string;
+//   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+//   loading?: boolean;
+//   placeholder?: string;
+//   children?: ReactNode;
+//   className?: string;
+//   actions?: ReactNode;
+//   setSelectedLanguage: (value: string) => void;
+// }) {
+//   const disabled = props.loading && props.onStop == null;
+//   return (
+//     <form
+//       onSubmit={(e) => {
+//         e.stopPropagation();
+//         e.preventDefault();
 
-        <div className="flex justify-between ml-4 mr-2 mb-2">
-          <div className="flex gap-3">
-            <div className="flex gap-2.5 items-center">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <div className="flex items-center gap-2.5 bg-muted border-2 p-1  cursor-pointer rounded-full">
-                    <Settings2 className="w-5 h-5" />
-                    <h1 className="">Tools</h1>
-                  </div>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  <DropdownMenuGroup>
-                    <DropdownMenuItem>
-                      <Link
-                        href="/langchain-chat/chat"
-                        className="flex items-center gap-2.5"
-                      >
-                        <MessageCircle className="w-5 h-5" /> General
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem>
-                      <Link
-                        href="/langchain-chat/structured_output"
-                        className="flex items-center gap-2.5"
-                      >
-                        <FileJson className="w-5 h-5" /> Structured Output
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem>
-                      <Link
-                        href="/langchain-chat/agents"
-                        className="flex items-center gap-2.5"
-                      >
-                        <Globe className="w-5 h-5" /> Agents
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem>
-                      <Link
-                        href="/langchain-chat/retrieval"
-                        className="flex items-center gap-2.5"
-                      >
-                        <Bot className="w-5 h-5" /> Retrieval
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem>
-                      <Link
-                        href="/langchain-chat/retrieval_agents"
-                        className="flex items-center gap-2.5"
-                      >
-                        <Bot className="w-5 h-5" /> Retrieval Agents
-                      </Link>
-                    </DropdownMenuItem>
-                  </DropdownMenuGroup>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <div className="flex items-center gap-2.5 bg-muted border-2 p-1  cursor-pointer rounded-full">
-                    <Settings2 className="w-5 h-5" />
-                    <h1 className="">Language</h1>
-                  </div>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  <DropdownMenuGroup>
-                    <DropdownMenuItem
-                      onClick={() => props.setSelectedLanguage("english")}
-                    >
-                      English
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => props.setSelectedLanguage("hindi")}
-                    >
-                      Hindi
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => props.setSelectedLanguage("telugu")}
-                    >
-                      Telugu
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => props.setSelectedLanguage("malaysia")}
-                    >
-                      Malaysia
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => props.setSelectedLanguage("vietnam")}
-                    >
-                      Vietnam
-                    </DropdownMenuItem>
-                  </DropdownMenuGroup>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-            {props.children}
-          </div>
+//         if (props.loading) {
+//           props.onStop?.();
+//         } else {
+//           props.onSubmit(e);
+//         }
+//       }}
+//       className={cn("flex w-full flex-col", props.className)}
+//     >
+//       <div className="border border-input bg-secondary rounded-lg flex flex-col gap-2 max-w-[768px] w-full mx-auto">
+//         <input
+//           value={props.value}
+//           placeholder={props.placeholder}
+//           onChange={props.onChange}
+//           className="border-none outline-none bg-transparent p-4"
+//         />
 
-          <div className="flex gap-2 self-end">
-            {props.actions}
-            <Button
-              size={"icon"}
-              type="submit"
-              className="self-end rounded-full"
-              disabled={disabled}
-            >
-              {props.loading ? (
-                <span role="status" className="flex justify-center">
-                  <LoaderCircle className="animate-spin" />
-                  <span className="sr-only">Loading...</span>
-                </span>
-              ) : (
-                <span>
-                  <ArrowUp className="w-5 h-5" />
-                </span>
-              )}
-            </Button>
-          </div>
-        </div>
-      </div>
-    </form>
-  );
-}
+//         <div className="flex justify-between ml-4 mr-2 mb-2">
+//           <div className="flex gap-3">
+//             <div className="flex gap-2.5 items-center">
+//               <DropdownMenu>
+//                 <DropdownMenuTrigger asChild>
+//                   <div className="flex items-center gap-2.5 bg-muted border-2 p-1  cursor-pointer rounded-full">
+//                     <Settings2 className="w-5 h-5" />
+//                     <h1 className="">Tools</h1>
+//                   </div>
+//                 </DropdownMenuTrigger>
+//                 <DropdownMenuContent>
+//                   <DropdownMenuGroup>
+//                     <DropdownMenuItem>
+//                       <Link
+//                         href="/langchain-chat/chat"
+//                         className="flex items-center gap-2.5"
+//                       >
+//                         <MessageCircle className="w-5 h-5" /> General
+//                       </Link>
+//                     </DropdownMenuItem>
+//                     <DropdownMenuItem>
+//                       <Link
+//                         href="/langchain-chat/structured_output"
+//                         className="flex items-center gap-2.5"
+//                       >
+//                         <FileJson className="w-5 h-5" /> Structured Output
+//                       </Link>
+//                     </DropdownMenuItem>
+//                     <DropdownMenuItem>
+//                       <Link
+//                         href="/langchain-chat/agents"
+//                         className="flex items-center gap-2.5"
+//                       >
+//                         <Globe className="w-5 h-5" /> Agents
+//                       </Link>
+//                     </DropdownMenuItem>
+//                     <DropdownMenuItem>
+//                       <Link
+//                         href="/langchain-chat/retrieval"
+//                         className="flex items-center gap-2.5"
+//                       >
+//                         <Bot className="w-5 h-5" /> Retrieval
+//                       </Link>
+//                     </DropdownMenuItem>
+//                     <DropdownMenuItem>
+//                       <Link
+//                         href="/langchain-chat/retrieval_agents"
+//                         className="flex items-center gap-2.5"
+//                       >
+//                         <Bot className="w-5 h-5" /> Retrieval Agents
+//                       </Link>
+//                     </DropdownMenuItem>
+//                   </DropdownMenuGroup>
+//                 </DropdownMenuContent>
+//               </DropdownMenu>
+//               <DropdownMenu>
+//                 <DropdownMenuTrigger asChild>
+//                   <div className="flex items-center gap-2.5 bg-muted border-2 p-1  cursor-pointer rounded-full">
+//                     <Settings2 className="w-5 h-5" />
+//                     <h1 className="">Language</h1>
+//                   </div>
+//                 </DropdownMenuTrigger>
+//                 <DropdownMenuContent>
+//                   <DropdownMenuGroup>
+//                     <DropdownMenuItem
+//                       onClick={() => props.setSelectedLanguage("english")}
+//                     >
+//                       English
+//                     </DropdownMenuItem>
+//                     <DropdownMenuItem
+//                       onClick={() => props.setSelectedLanguage("hindi")}
+//                     >
+//                       Hindi
+//                     </DropdownMenuItem>
+//                     <DropdownMenuItem
+//                       onClick={() => props.setSelectedLanguage("telugu")}
+//                     >
+//                       Telugu
+//                     </DropdownMenuItem>
+//                     <DropdownMenuItem
+//                       onClick={() => props.setSelectedLanguage("malaysia")}
+//                     >
+//                       Malaysia
+//                     </DropdownMenuItem>
+//                     <DropdownMenuItem
+//                       onClick={() => props.setSelectedLanguage("vietnam")}
+//                     >
+//                       Vietnam
+//                     </DropdownMenuItem>
+//                   </DropdownMenuGroup>
+//                 </DropdownMenuContent>
+//               </DropdownMenu>
+//             </div>
+//             {props.children}
+//           </div>
 
-function ScrollToBottom(props: { className?: string }) {
+//           <div className="flex gap-2 self-end">
+//             {props.actions}
+//             <Button
+//               size={"icon"}
+//               type="submit"
+//               className="self-end rounded-full"
+//               disabled={disabled}
+//             >
+//               {props.loading ? (
+//                 <span role="status" className="flex justify-center">
+//                   <LoaderCircle className="animate-spin" />
+//                   <span className="sr-only">Loading...</span>
+//                 </span>
+//               ) : (
+//                 <span>
+//                   <ArrowUp className="w-5 h-5" />
+//                 </span>
+//               )}
+//             </Button>
+//           </div>
+//         </div>
+//       </div>
+//     </form>
+//   );
+// }
+
+export function ScrollToBottom(props: { className?: string }) {
   const { isAtBottom, scrollToBottom } = useStickToBottomContext();
 
   if (isAtBottom) return null;
@@ -287,7 +300,7 @@ function ScrollToBottom(props: { className?: string }) {
   );
 }
 
-function StickyToBottomContent(props: {
+export function StickyToBottomContent(props: {
   content: ReactNode;
   footer?: ReactNode;
   className?: string;
@@ -311,23 +324,23 @@ function StickyToBottomContent(props: {
   );
 }
 
-export function ChatLayout(props: { content: ReactNode; footer: ReactNode }) {
-  return (
-    <StickToBottom>
-      <StickyToBottomContent
-        className="absolute inset-0"
-        contentClassName="py-8 px-2"
-        content={props.content}
-        footer={
-          <div className="sticky  bottom-8 px-2">
-            <ScrollToBottom className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4" />
-            {props.footer}
-          </div>
-        }
-      />
-    </StickToBottom>
-  );
-}
+// export function ChatLayout(props: { content: ReactNode; footer: ReactNode }) {
+//   return (
+//     <StickToBottom>
+//       <StickyToBottomContent
+//         className="absolute inset-0"
+//         contentClassName="py-8 px-2"
+//         content={props.content}
+//         footer={
+//           <div className="sticky  bottom-8 px-2">
+//             <ScrollToBottom className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4" />
+//             {props.footer}
+//           </div>
+//         }
+//       />
+//     </StickToBottom>
+//   );
+// }
 
 export function ChatWindow(props: {
   endpoint: string;
@@ -346,6 +359,7 @@ export function ChatWindow(props: {
   const [currentChatId, setCurrentChatId] = useState(props.chatId);
   const [messagesLoaded, setMessagesLoaded] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState("english");
+  const [selectedAIModel, setSelectedAIModel] = useState("openai");
   const msgId = uuidv4();
 
   const [sourcesForMessages, setSourcesForMessages] = useState<
@@ -412,6 +426,7 @@ export function ChatWindow(props: {
     id: currentChatId,
     body: {
       language: selectedLanguage,
+      aiModel: selectedAIModel,
     },
     onResponse(response) {
       const sourcesHeader = response.headers.get("x-sources");
@@ -704,7 +719,7 @@ export function ChatWindow(props: {
         }
       );
 
-      const intermediateStepMessages = [];
+      const intermediateStepMessages: IntermediateStepType[] = [];
       for (let i = 0; i < toolCallMessages.length; i += 2) {
         const aiMessage = toolCallMessages[i];
         const toolMessage = toolCallMessages[i + 1];
@@ -792,10 +807,15 @@ export function ChatWindow(props: {
   // console.log("messages-----", chat.messages);
   return (
     <div className="flex-1">
-      <div className="flex items-center">
-        {/* <div className=" w-full justify-end items-center flex   z-50">
+      <div className="flex z-50 bg-background items-center">
+        <div className=" bg-muted rounded-full p-2.5 ">
+          <p className="flex text-sm">
+            Model: <span className="capitalize"> {selectedAIModel}</span>
+          </p>
+        </div>
+        <div className=" w-full justify-end items-center flex  gap-2.5 z-50">
           <Coins className="text-yellow-500" />
-          <HistoryView
+          {/* <HistoryView
             history={history}
             onHistoryUpdate={handleHistoryUpdate}
           />
@@ -806,11 +826,11 @@ export function ChatWindow(props: {
           <Favorites
             favorites={favorites}
             onFavoriteUpdate={handleFavoritesUpdate}
-          />
+          /> */}
           <Link href="/langchain-chat/chat">
             <Plus className=" text-muted-foreground" />
           </Link>
-        </div> */}
+        </div>
       </div>
       <ChatLayout
         content={
@@ -836,6 +856,7 @@ export function ChatWindow(props: {
             loading={chat.isLoading || intermediateStepsLoading}
             placeholder={props.placeholder ?? "What's it like to be a pirate?"}
             setSelectedLanguage={setSelectedLanguage}
+            setSelectedAIModel={setSelectedAIModel}
           >
             {props.showIngestForm && (
               <Dialog>
