@@ -12,9 +12,10 @@ export async function getChatHistory(chatGroup: string) {
       .select("id,title,createdAt")
       .eq("user_id", userId)
       .eq("chat_group", chatGroup)
-      .eq("status", "active");
+      .eq("status", "active")
+      .order("createdAt", { ascending: true });
+
     if (error) throw error;
-    console.log("data-------", data);
     return data;
   } catch (error) {
     return error;
@@ -32,9 +33,10 @@ export async function getChatBookMarks(chatGroup: string) {
       .eq("user_id", userId)
       .eq("chat_group", chatGroup)
       .eq("bookmark", true)
-      .eq("status", "active");
+      .eq("status", "active")
+      .order("createdAt", { ascending: true });
     if (error) throw error;
-    console.log("data-------", data);
+
     return data;
   } catch (error) {
     return error;
@@ -52,9 +54,11 @@ export async function getChatFavorites(chatGroup: string) {
       .eq("user_id", userId)
       .eq("chat_group", chatGroup)
       .eq("favorite", true)
-      .eq("status", "active");
+      .eq("status", "active")
+      .order("createdAt", { ascending: true });
+
     if (error) throw error;
-    console.log("data-------", data);
+
     return data;
   } catch (error) {
     return error;

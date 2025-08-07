@@ -37,7 +37,7 @@ type ChartDataProps = {
 };
 
 export const ChartRenderer = ({ chartData }: ChartDataProps) => {
-  if (!chartData || !chartData.data || !chartData.labels) {
+  if (!chartData || !chartData.data) {
     return <div>Invalid chart data</div>;
   }
 

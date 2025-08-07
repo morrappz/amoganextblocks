@@ -80,12 +80,14 @@ export const ChatMessages = React.memo(function ChatMessages(props: {
           return {
             parsedContent: parsedMsg.content,
             chartType: parsedMsg.chart || null,
+            analyticCard: parsedMsg.analyticCard || null,
           };
         } else {
           // If parsing succeeds but structure is unexpected, return original
           return {
             parsedContent: content,
             chartType: null,
+            analyticCard: null,
           };
         }
       } catch (error) {
@@ -93,6 +95,7 @@ export const ChatMessages = React.memo(function ChatMessages(props: {
         return {
           parsedContent: content,
           chartType: null,
+          analyticCard: null,
         };
       }
     },
@@ -100,7 +103,7 @@ export const ChatMessages = React.memo(function ChatMessages(props: {
   );
 
   return (
-    <div className="flex flex-col mt-5  -z-50 relative max-w-[768px] mx-auto pb-12 w-full">
+    <div className="flex flex-col mt-5  -z-50  max-w-[768px] mx-auto pb-12 w-full">
       {props.messages.map((m, i) => {
         if (m.role === "system") {
           return <IntermediateStep key={m.id} message={m} />;
@@ -111,11 +114,13 @@ export const ChatMessages = React.memo(function ChatMessages(props: {
         // Parse content for assistant messages only
         let parsedMessage = m.content;
         let chartType = null;
+        let analyticCard = null;
 
         if (m.role === "assistant") {
           const parsed = parseMessageContent(m.content);
           parsedMessage = parsed.parsedContent;
           chartType = parsed.chartType;
+          analyticCard = parsed.analyticCard;
         }
 
         return (
@@ -127,6 +132,7 @@ export const ChatMessages = React.memo(function ChatMessages(props: {
             onUpdateMessage={props.onUpdateMessage}
             parsedMessage={parsedMessage}
             chartType={chartType}
+            analyticCard={analyticCard}
             // onBookmarkUpdate={handleBookmarkUpdate}
             // onFavoriteUpdate={handleFavoriteUpdate}
           />
