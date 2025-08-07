@@ -61,6 +61,7 @@ export default async function Home({ params }: IndexProps) {
     <div className="mx-auto">
       {/* <AIOptions /> */}
       <ChatWindow
+        key={chatId || "new-chat"} // Force remount when chatId changes
         endpoint="/api/chat"
         emoji="🏴‍☠️"
         placeholder="Enter prompt..."

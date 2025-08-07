@@ -56,6 +56,7 @@ export default function Home() {
   return (
     <div className="w-full  max-w-[800px] mx-auto ">
       <ChatWindow
+        key="new-chat" // Force remount for new chat
         endpoint="/api/chat"
         emoji="🏴‍☠️"
         placeholder="Enter prompt..."

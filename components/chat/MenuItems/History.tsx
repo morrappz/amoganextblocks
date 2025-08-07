@@ -39,7 +39,7 @@ const History = ({
     // Prevent dropdown from closing when clicking delete
     event.stopPropagation();
     event.preventDefault();
-    
+
     try {
       await deleteChat(id);
       toast.success("Chat deleted successfully");
@@ -53,11 +53,13 @@ const History = ({
 
   return (
     <div>
-      <DropdownMenu onOpenChange={(open) => {
-        if (open) {
-          onDropdownOpen();
-        }
-      }}>
+      <DropdownMenu
+        onOpenChange={(open) => {
+          if (open) {
+            onDropdownOpen();
+          }
+        }}
+      >
         <DropdownMenuTrigger asChild>
           <Button variant={"ghost"} size={"icon"} className="rounded-full">
             {loading ? (
@@ -68,11 +70,13 @@ const History = ({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="w-[300px]" side="bottom" align="end">
-          <DropdownMenuGroup className="md:max-h-[400px] overflow-y-auto">
+          <DropdownMenuGroup className="max-h-[400px]  overflow-y-auto">
             {loading ? (
               <div className="flex items-center justify-center p-4">
                 <LoaderCircle className="w-6 h-6 animate-spin text-muted-foreground" />
-                <span className="ml-2 text-sm text-muted-foreground">Loading history...</span>
+                <span className="ml-2 text-sm text-muted-foreground">
+                  Loading history...
+                </span>
               </div>
             ) : history?.length > 0 ? (
               history.map((item) => (
@@ -90,7 +94,9 @@ const History = ({
                         <p className="max-w-[90%] overflow-ellipsis line-clamp-1">
                           {item.title}
                         </p>
-                        <p className="text-xs text-muted-foreground">{formatDate(item.createdAt)}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {formatDate(item.createdAt)}
+                        </p>
                       </Link>
                     </div>
                     <div className="hover:bg-red-100 hover:scale-110 rounded-md p-2.5">
@@ -104,7 +110,9 @@ const History = ({
               ))
             ) : (
               <div className="p-4 text-center">
-                <p className="text-sm text-muted-foreground">No chat history available</p>
+                <p className="text-sm text-muted-foreground">
+                  No chat history available
+                </p>
               </div>
             )}
           </DropdownMenuGroup>

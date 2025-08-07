@@ -1,3 +1,5 @@
+//Chat Message Bubble
+
 import { getChatBookMarks } from "@/app/(authenticated)/langchain-chat/lib/actions";
 import { cn } from "@/utils/cn";
 import { AlarmClockCheck, Bookmark, Copy, Heart, Star } from "lucide-react";
@@ -5,6 +7,7 @@ import React from "react";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { ChartRenderer } from "./ChartRenderer";
 
 type Message = {
   id: string;
@@ -14,6 +17,7 @@ type Message = {
   isLike?: boolean;
   bookmark?: boolean;
   favorite?: boolean;
+  chart?: any; // Can now hold complex chart objects
 };
 
 interface Props {
@@ -23,10 +27,14 @@ interface Props {
   onUpdateMessage: (messageId: string, updates: Partial<Message>) => void;
   onBookmarkUpdate?: () => void;
   onFavoriteUpdate?: () => void;
+  parsedMessage: string;
+  chartType: any;
 }
 
-export function ChatMessageBubble(props: Props) {
-  const { message, onUpdateMessage } = props;
+export const ChatMessageBubble = React.memo(function ChatMessageBubble(
+  props: Props
+) {
+  const { message, onUpdateMessage, parsedMessage, chartType } = props;
 
   const handleBookmark = () => {
     onUpdateMessage(message.id, {
@@ -46,6 +54,8 @@ export function ChatMessageBubble(props: Props) {
     navigator.clipboard.writeText(message.content);
     toast.success("Message Copied Successfully");
   };
+
+  console.log("message-----", message);
 
   return (
     <div
@@ -75,10 +85,20 @@ export function ChatMessageBubble(props: Props) {
             tr: ({ children }) => <tr>{children}</tr>,
             th: ({ children }) => <th>{children}</th>,
             td: ({ children }) => <td>{children}</td>,
+            ul: ({ children }) => (
+              <ul className="list-disc pl-5">{children}</ul>
+            ),
+            ol: ({ children }) => (
+              <ol className="list-decimal pl-5">{children}</ol>
+            ),
+            li: ({ children }) => <li className="mb-1">{children}</li>,
           }}
         >
-          {message.content}
+          {message.role === "assistant" ? parsedMessage : message.content}
         </ReactMarkdown>
+
+        {/* Render chart if present */}
+        {chartType?.data && <ChartRenderer chartData={chartType} />}
         {message.role === "assistant" && (
           <div className="flex items-center gap-2.5 mt-2">
             <Copy
@@ -128,4 +148,4 @@ export function ChatMessageBubble(props: Props) {
       </div>
     </div>
   );
-}
+});

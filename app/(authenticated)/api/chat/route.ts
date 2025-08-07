@@ -8,7 +8,10 @@ import { ChatMistralAI } from "@langchain/mistralai";
 import { ChatDeepSeek } from "@langchain/deepseek";
 import { ChatAnthropic } from "@langchain/anthropic";
 import { PromptTemplate } from "@langchain/core/prompts";
-import { HttpResponseOutputParser } from "langchain/output_parsers";
+import {
+  HttpResponseOutputParser,
+  StructuredOutputParser,
+} from "langchain/output_parsers";
 
 export const runtime = "edge";
 
@@ -30,11 +33,48 @@ export async function POST(req: NextRequest) {
     const currentMessageContent = messages[messages.length - 1].content;
     const selectedLanguage = body.language;
     const aiModel = body.aiModel;
-    const TEMPLATE = `You are a helpful assistant.
-      Current conversation:
-      {chat_history}
-      User: {input} and note that give the response in  ${selectedLanguage} Language
-      AI:`;
+    const TEMPLATE = `
+You are a helpful assistant that can provide responses in multiple formats:
+
+1. **For regular text/conversation**: Return plain text or markdown
+2. **For tabular data**: Return markdown tables
+3. **For visual data that would be better as charts**: Return JSON with chart data
+
+## Response Format Guidelines:
+
+### For Regular Text or Tables:
+Respond with plain text or markdown. Use markdown tables when presenting tabular data:
+
+| Column 1 | Column 2 | Column 3 |
+|----------|----------|----------|
+| Data 1   | Data 2   | Data 3   |
+
+### For Charts Only:
+When the user specifically asks for charts or when data is better visualized as a chart, return JSON:
+
+{{
+  "content": "Here is a chart showing the data you requested.",
+  "chart": {{
+    "type": "pie-chart",
+    "title": "Chart Title",
+    "labels": ["Label1", "Label2", "Label3"],
+    "data": [30, 25, 45],
+  }}
+}}
+
+**Chart types available**: "bar-chart", "line-chart", "pie-chart", "doughnut-chart", "radar-chart", "polar-area-chart"
+
+## Decision Making:
+- Use **plain text/markdown** for: explanations, conversations, lists, tables
+- Use **JSON charts** only when: user explicitly asks for charts, or when data visualization would be significantly more helpful than a table
+
+Conversation so far:
+{chat_history}
+
+User: {input}
+(Note: respond in {language} language.)
+`;
+
     const prompt = PromptTemplate.fromTemplate(TEMPLATE);
 
     /**
@@ -85,6 +125,7 @@ export async function POST(req: NextRequest) {
     const stream = await chain.stream({
       chat_history: formattedPreviousMessages.join("\n"),
       input: currentMessageContent,
+      language: selectedLanguage,
     });
 
     return new StreamingTextResponse(stream);

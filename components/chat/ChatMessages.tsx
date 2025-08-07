@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import React, { ReactNode, useCallback } from "react";
 import { ChatMessageBubble } from "./ChatMessageBubble";
 import { IntermediateStep } from "./IntermediateStep";
 
@@ -12,32 +12,112 @@ type Message = {
   favorite?: boolean;
 };
 
-export function ChatMessages(props: {
+export const ChatMessages = React.memo(function ChatMessages(props: {
   messages: Message[];
   emptyStateComponent: ReactNode;
   sourcesForMessages: Record<string, any>;
   aiEmoji?: string;
   className?: string;
   onUpdateMessage: (messageId: string, updates: Partial<Message>) => void;
-  // setBookmarks: Dispatch<SetStateAction<never[]>>;
-  // setFavorites: Dispatch<SetStateAction<never[]>>;
 }) {
-  // const handleBookmarkUpdate = async () => {
-  //   const updatedBookmarks = await getChatBookMarks("LangStarter");
-  //   props.setBookmarks(updatedBookmarks);
-  // };
-  // const handleFavoriteUpdate = async () => {
-  //   const updatedBookmarks = await getChatFavorites("LangStarter");
-  //   props.setFavorites(updatedBookmarks);
-  // };
+  // Helper function to check if JSON is complete and valid
+  const isCompleteJSON = useCallback((content: string) => {
+    const trimmed = content.trim();
+    if (!trimmed.startsWith("{") || !trimmed.endsWith("}")) {
+      return false;
+    }
+
+    // Count braces to ensure they're balanced
+    let braceCount = 0;
+    let inString = false;
+    let escaped = false;
+
+    for (let i = 0; i < trimmed.length; i++) {
+      const char = trimmed[i];
+
+      if (escaped) {
+        escaped = false;
+        continue;
+      }
+
+      if (char === "\\") {
+        escaped = true;
+        continue;
+      }
+
+      if (char === '"') {
+        inString = !inString;
+        continue;
+      }
+
+      if (!inString) {
+        if (char === "{") {
+          braceCount++;
+        } else if (char === "}") {
+          braceCount--;
+        }
+      }
+    }
+
+    return braceCount === 0;
+  }, []);
+
+  // Helper function to parse message content and extract chart data
+  const parseMessageContent = useCallback(
+    (content: string) => {
+      // Only try to parse if the content looks like complete JSON
+      if (!isCompleteJSON(content)) {
+        return {
+          parsedContent: content,
+          chartType: null,
+        };
+      }
+
+      try {
+        const parsedMsg = JSON.parse(content);
+        // Only return parsed data if it has the expected structure
+        if (parsedMsg && typeof parsedMsg === "object" && parsedMsg.content) {
+          return {
+            parsedContent: parsedMsg.content,
+            chartType: parsedMsg.chart || null,
+          };
+        } else {
+          // If parsing succeeds but structure is unexpected, return original
+          return {
+            parsedContent: content,
+            chartType: null,
+          };
+        }
+      } catch (error) {
+        // If parsing fails, return original content
+        return {
+          parsedContent: content,
+          chartType: null,
+        };
+      }
+    },
+    [isCompleteJSON]
+  );
+
   return (
-    <div className="flex flex-col mt-5 -z-10 max-w-[768px] mx-auto pb-12 w-full">
+    <div className="flex flex-col mt-5  -z-50 relative max-w-[768px] mx-auto pb-12 w-full">
       {props.messages.map((m, i) => {
         if (m.role === "system") {
           return <IntermediateStep key={m.id} message={m} />;
         }
 
         const sourceKey = (props.messages.length - 1 - i).toString();
+
+        // Parse content for assistant messages only
+        let parsedMessage = m.content;
+        let chartType = null;
+
+        if (m.role === "assistant") {
+          const parsed = parseMessageContent(m.content);
+          parsedMessage = parsed.parsedContent;
+          chartType = parsed.chartType;
+        }
+
         return (
           <ChatMessageBubble
             key={m.id}
@@ -45,6 +125,8 @@ export function ChatMessages(props: {
             aiEmoji={props.aiEmoji}
             sources={props.sourcesForMessages[sourceKey]}
             onUpdateMessage={props.onUpdateMessage}
+            parsedMessage={parsedMessage}
+            chartType={chartType}
             // onBookmarkUpdate={handleBookmarkUpdate}
             // onFavoriteUpdate={handleFavoriteUpdate}
           />
@@ -52,4 +134,4 @@ export function ChatMessages(props: {
       })}
     </div>
   );
-}
+});
