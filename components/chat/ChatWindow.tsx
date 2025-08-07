@@ -879,8 +879,8 @@ export function ChatWindow(props: {
   // };
   // console.log("messages-----", chat.messages);
   return (
-    <div className="flex-1">
-      <div className="flex z-auto bg-background items-center">
+    <div className="">
+      <div className="flex relative z-50 bg-background items-center">
         <div className=" bg-muted rounded-full p-2.5 ">
           <p className="flex text-sm">
             Model: <span className="capitalize"> {selectedAIModel}</span>

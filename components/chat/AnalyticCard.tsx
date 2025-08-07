@@ -1,9 +1,18 @@
+"use client";
 import React from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
-
-import { Card, CardContent, CardTitle } from "../ui/card";
-import { Table, TableHead, TableRow, TableBody } from "../ui/table";
+import { Card, CardContent, CardDescription, CardTitle } from "../ui/card";
+import {
+  Table,
+  TableHead,
+  TableRow,
+  TableBody,
+  TableHeader,
+  TableCell,
+} from "../ui/table";
 import { ChartRenderer } from "./ChartRenderer";
+import { Button } from "../ui/button";
+import { ChevronsLeft, ChevronsRight } from "lucide-react";
 
 type RawChartData = {
   type: string;
@@ -31,12 +40,21 @@ export function transformToChartRendererFormat(
 }
 
 const AnalyticCard = ({ analyticCard }: { analyticCard: any }) => {
+  const [currentIndex, setCurrentIndex] = React.useState(1);
+  const rowsPerPage = 10;
+
+  const totalRows = analyticCard?.tabs?.table?.rows || [];
+  const totalPages = Math.ceil(totalRows.length / rowsPerPage);
+  const paginatedRows = totalRows.slice(
+    (currentIndex - 1) * rowsPerPage,
+    currentIndex * rowsPerPage
+  );
   return (
-    <div>
-      <Card className="p-2.5">
+    <div className="w-full mt-2.5">
+      <Card className="p-2.5  space-y-2.5">
         <CardTitle>{analyticCard?.title}</CardTitle>
-        <span>{analyticCard?.description}</span>
-        <CardContent className="py-3">
+        <CardDescription>{analyticCard?.description}</CardDescription>
+        <CardContent className="w-full  p-0">
           <div className=" w-full ">
             <Tabs defaultValue="table" className="w-full">
               <TabsList className="grid grid-cols-2">
@@ -44,25 +62,71 @@ const AnalyticCard = ({ analyticCard }: { analyticCard: any }) => {
                 <TabsTrigger value="chart">Chart</TabsTrigger>
               </TabsList>
               <TabsContent value="table">
-                <div className="">
-                  <Table>
-                    <TableHead>
-                      <TableRow>
-                        {analyticCard?.tabs?.table.headers?.map((header, i) => (
-                          <TableHead key={i}>{header}</TableHead>
+                <Table className="w-full text-sm text-left border border-muted rounded-lg overflow-hidden shadow-sm">
+                  <TableHeader className="bg-muted text-gray-700 uppercase tracking-wide text-xs">
+                    <TableRow>
+                      {analyticCard?.tabs?.table.headers?.map((header, i) => (
+                        <TableHead
+                          key={i}
+                          className="px-4 py-3 font-medium border-b border-gray-200"
+                        >
+                          {header}
+                        </TableHead>
+                      ))}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedRows?.map((row, index) => (
+                      <TableRow
+                        key={index}
+                        className="hover:bg-gray-50 transition-colors border-b border-gray-100"
+                      >
+                        {row.map((cell, colIndex) => (
+                          <TableCell
+                            key={colIndex}
+                            className="px-4 py-2 whitespace-nowrap"
+                          >
+                            {cell}
+                          </TableCell>
                         ))}
                       </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {analyticCard?.tabs?.table?.rows?.map((row, index) => (
-                        <TableRow key={index}>
-                          {row.map((cell, colIndex) => (
-                            <td key={colIndex}>{cell}</td>
-                          ))}
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                    ))}
+                  </TableBody>
+                </Table>
+                <div className="border-t-2 flex justify-between  p-2.5 w-full">
+                  <div>
+                    <span className="flex">Total: {totalRows?.length}</span>
+                  </div>
+                  <div>
+                    <span>
+                      Page {currentIndex} of {totalPages}
+                    </span>
+                  </div>
+                  <div className="gap-2.5 flex">
+                    <Button
+                      onClick={() =>
+                        setCurrentIndex((prev) => Math.max(prev - 1, 1))
+                      }
+                      disabled={currentIndex === 1}
+                      size={"icon"}
+                      variant={"outline"}
+                    >
+                      <ChevronsLeft className="w-5 h-5" />
+                    </Button>
+
+                    <Button
+                      onClick={() =>
+                        setCurrentIndex((prev) =>
+                          Math.min(prev + 1, totalPages)
+                        )
+                      }
+                      disabled={currentIndex === totalPages}
+                      size={"icon"}
+                      variant={"outline"}
+                    >
+                      <ChevronsRight className="w-5 h-5" />
+                    </Button>
+                  </div>
                 </div>
               </TabsContent>
               <TabsContent value="chart">
