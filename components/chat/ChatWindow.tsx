@@ -1,3 +1,5 @@
+// chat window
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
@@ -60,10 +62,10 @@ import getUserOS from "@/utils/getCurrentOS";
 import getUserLocation from "@/utils/geoLocation";
 import { ChatInput } from "./ChatInput";
 import { ChatLayout } from "./ChatLayout";
-import { ChatMessages } from "./ChatMessages";
 import History from "./MenuItems/History";
 import BookMark from "./MenuItems/Bookmark";
 import Favorites from "./MenuItems/Favorites";
+import { ChatMessages } from "./ChatMessages";
 
 type Message = {
   id: string;
@@ -73,6 +75,7 @@ type Message = {
   isLike?: boolean;
   bookmark?: boolean;
   favorite?: boolean;
+  chart?: any; // Can now hold complex chart objects
 };
 
 type IntermediateStepType = {
@@ -83,6 +86,7 @@ type IntermediateStepType = {
   isLike: boolean;
   bookmark: boolean;
   favorite: boolean;
+  chart?: string;
 };
 
 // function ChatMessages(props: {
@@ -530,30 +534,19 @@ export function ChatWindow(props: {
                 : uuidv4();
           }
 
-          // Create a properly typed message object
-          const messageToSave = {
-            id: message.id || `msg-${Date.now()}`,
-            role: "assistant",
-            content: message.content || "",
-            isLike: false,
-            bookmark: false,
-            favorite: false,
-            createdAt: new Date(),
-          };
-
-          // Save the message to the database
+          // Save the original message content to the database
           await saveMessage({
-            id: messageToSave.id,
+            id: message.id || `msg-${Date.now()}`,
             chatId: chatIdToUse,
-            role: messageToSave.role,
-            content: messageToSave.content,
+            role: "assistant",
+            content: message.content, // Save original content
             chat_group: "LangStarter",
             status: "active",
             user_id: session?.user?.user_catalog_id || "",
             createdAt: new Date().toISOString(),
-            isLike: messageToSave.isLike,
-            bookmark: messageToSave.bookmark,
-            favorite: messageToSave.favorite,
+            isLike: false,
+            bookmark: false,
+            favorite: false,
           });
           // handleHistory();
         } catch (error) {
@@ -621,6 +614,8 @@ export function ChatWindow(props: {
   // Load existing messages when component mounts or chatId changes
   useEffect(() => {
     const loadMessages = async () => {
+      setMessagesLoaded(false); // Reset loading state
+
       if (props.chatId && session?.user?.user_catalog_id) {
         try {
           const existingMessages = await getMessagesByChatId(props.chatId);
@@ -638,16 +633,22 @@ export function ChatWindow(props: {
               })
             );
             chat.setMessages(formattedMessages);
+          } else {
+            // No messages found, clear the chat
+            chat.setMessages([]);
           }
-          setCurrentChatId(props.chatId);
-          setMessagesLoaded(true);
         } catch (error) {
           console.error("Failed to load messages:", error);
-          setMessagesLoaded(true);
+          chat.setMessages([]); // Clear messages on error
         }
       } else {
-        setMessagesLoaded(true);
+        // No chatId provided (new chat), clear everything
+        chat.setMessages([]);
+        // Clear sources and reset other states
+        setSourcesForMessages({});
       }
+
+      setMessagesLoaded(true);
     };
 
     loadMessages();
@@ -879,7 +880,7 @@ export function ChatWindow(props: {
   // console.log("messages-----", chat.messages);
   return (
     <div className="flex-1">
-      <div className="flex z-50 bg-background items-center">
+      <div className="flex z-auto bg-background items-center">
         <div className=" bg-muted rounded-full p-2.5 ">
           <p className="flex text-sm">
             Model: <span className="capitalize"> {selectedAIModel}</span>

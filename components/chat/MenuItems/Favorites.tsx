@@ -62,7 +62,7 @@ const Favorites = ({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent>
-          <DropdownMenuGroup className="md:max-h-[400px] overflow-y-auto md:max-w-[300px]">
+          <DropdownMenuGroup className="max-h-[400px] overflow-y-auto md:max-w-[300px]">
             {loading ? (
               <div className="flex items-center justify-center p-4">
                 <LoaderCircle className="w-6 h-6 animate-spin text-muted-foreground" />
