@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { ChartRenderer } from "./ChartRenderer";
+import AnalyticCard from "./AnalyticCard";
 
 type Message = {
   id: string;
@@ -29,12 +30,14 @@ interface Props {
   onFavoriteUpdate?: () => void;
   parsedMessage: string;
   chartType: any;
+  analyticCard: any;
 }
 
 export const ChatMessageBubble = React.memo(function ChatMessageBubble(
   props: Props
 ) {
-  const { message, onUpdateMessage, parsedMessage, chartType } = props;
+  const { message, onUpdateMessage, parsedMessage, chartType, analyticCard } =
+    props;
 
   const handleBookmark = () => {
     onUpdateMessage(message.id, {
@@ -54,8 +57,6 @@ export const ChatMessageBubble = React.memo(function ChatMessageBubble(
     navigator.clipboard.writeText(message.content);
     toast.success("Message Copied Successfully");
   };
-
-  console.log("message-----", message);
 
   return (
     <div
@@ -99,6 +100,7 @@ export const ChatMessageBubble = React.memo(function ChatMessageBubble(
 
         {/* Render chart if present */}
         {chartType?.data && <ChartRenderer chartData={chartType} />}
+        {analyticCard?.tabs && <AnalyticCard analyticCard={analyticCard} />}
         {message.role === "assistant" && (
           <div className="flex items-center gap-2.5 mt-2">
             <Copy

@@ -62,6 +62,35 @@ When the user specifically asks for charts or when data is better visualized as 
   }}
 }}
 
+### For Analytic Card Only:
+When the user specifically asks for data in analytic card, return JSON:
+
+When the user asks for analytics, respond using the following format:
+
+{{
+  "content": "Here is your analytics card:",
+  "analyticCard": {{
+    "title": "Some title",
+    "description": "Optional summary",
+    "tabs": {{
+      "table": {{
+        "headers": ["Col1", "Col2"],
+        "rows": [["A", "100"], ["B", "200"]]
+  }},
+      "chart": {{
+        "type": "bar-chart",
+        "xAxis": "Col1",
+        "yAxis": "Col2",
+        "data": [
+          {{ "label": "A", "value": 100 }},
+          {{ "label": "B", "value": 200 }}
+        ]
+  }}
+  }}
+  }}
+  }}
+
+
 **Chart types available**: "bar-chart", "line-chart", "pie-chart", "doughnut-chart", "radar-chart", "polar-area-chart"
 
 ## Decision Making:
