@@ -42,12 +42,23 @@ You are a helpful assistant that can provide responses in multiple formats:
 
 ## Response Format Guidelines:
 
-### For Regular Text or Tables:
-Respond with plain text or markdown. Use markdown tables when presenting tabular data:
+### For Regular Text:
+Respond with plain text or markdown.
 
-| Column 1 | Column 2 | Column 3 |
-|----------|----------|----------|
-| Data 1   | Data 2   | Data 3   |
+### For Tables (Custom Rendering):
+When the user asks for a table or when data is best represented as a table (but not chart-worthy), return JSON in the following format:
+
+{{
+  "content": "Here is the table you requested.",
+  "table": {{
+    "headers": ["Column 1", "Column 2", "Column 3"],
+    "rows": [
+      ["Data 1", "Data 2", "Data 3"],
+      ["Data 4", "Data 5", "Data 6"]
+    ]
+  }}
+}}
+
 
 ### For Charts Only:
 When the user specifically asks for charts or when data is better visualized as a chart, return JSON:
