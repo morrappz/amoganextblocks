@@ -81,6 +81,7 @@ export const ChatMessages = React.memo(function ChatMessages(props: {
             parsedContent: parsedMsg.content,
             chartType: parsedMsg.chart || null,
             analyticCard: parsedMsg.analyticCard || null,
+            table: parsedMsg.table || null,
           };
         } else {
           // If parsing succeeds but structure is unexpected, return original
@@ -88,6 +89,7 @@ export const ChatMessages = React.memo(function ChatMessages(props: {
             parsedContent: content,
             chartType: null,
             analyticCard: null,
+            table: null,
           };
         }
       } catch (error) {
@@ -96,6 +98,7 @@ export const ChatMessages = React.memo(function ChatMessages(props: {
           parsedContent: content,
           chartType: null,
           analyticCard: null,
+          table: null,
         };
       }
     },
@@ -115,12 +118,14 @@ export const ChatMessages = React.memo(function ChatMessages(props: {
         let parsedMessage = m.content;
         let chartType = null;
         let analyticCard = null;
+        let table = null;
 
         if (m.role === "assistant") {
           const parsed = parseMessageContent(m.content);
           parsedMessage = parsed.parsedContent;
           chartType = parsed.chartType;
           analyticCard = parsed.analyticCard;
+          table = parsed.table;
         }
 
         return (
@@ -133,6 +138,7 @@ export const ChatMessages = React.memo(function ChatMessages(props: {
             parsedMessage={parsedMessage}
             chartType={chartType}
             analyticCard={analyticCard}
+            table={table}
             // onBookmarkUpdate={handleBookmarkUpdate}
             // onFavoriteUpdate={handleFavoriteUpdate}
           />

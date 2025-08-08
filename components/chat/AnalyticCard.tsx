@@ -13,6 +13,7 @@ import {
 import { ChartRenderer } from "./ChartRenderer";
 import { Button } from "../ui/button";
 import { ChevronsLeft, ChevronsRight } from "lucide-react";
+import RenderTable from "./RenderTable";
 
 type RawChartData = {
   type: string;
@@ -62,7 +63,7 @@ const AnalyticCard = ({ analyticCard }: { analyticCard: any }) => {
                 <TabsTrigger value="chart">Chart</TabsTrigger>
               </TabsList>
               <TabsContent value="table">
-                <Table className="w-full text-sm text-left border border-muted rounded-lg overflow-hidden shadow-sm">
+                {/* <Table className="w-full text-sm text-left border border-muted rounded-lg overflow-hidden shadow-sm">
                   <TableHeader className="bg-muted text-gray-700 uppercase tracking-wide text-xs">
                     <TableRow>
                       {analyticCard?.tabs?.table.headers?.map((header, i) => (
@@ -92,8 +93,9 @@ const AnalyticCard = ({ analyticCard }: { analyticCard: any }) => {
                       </TableRow>
                     ))}
                   </TableBody>
-                </Table>
-                <div className="border-t-2 flex justify-between  p-2.5 w-full">
+                </Table> */}
+                <RenderTable table={analyticCard?.tabs?.table} />
+                {/* <div className="border-t-2 flex justify-between  p-2.5 w-full">
                   <div>
                     <span className="flex">Total: {totalRows?.length}</span>
                   </div>
@@ -127,7 +129,7 @@ const AnalyticCard = ({ analyticCard }: { analyticCard: any }) => {
                       <ChevronsRight className="w-5 h-5" />
                     </Button>
                   </div>
-                </div>
+                </div> */}
               </TabsContent>
               <TabsContent value="chart">
                 <ChartRenderer

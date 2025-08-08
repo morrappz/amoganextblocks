@@ -2,7 +2,14 @@
 
 import { getChatBookMarks } from "@/app/(authenticated)/langchain-chat/lib/actions";
 import { cn } from "@/utils/cn";
-import { AlarmClockCheck, Bookmark, Copy, Heart, Star } from "lucide-react";
+import {
+  AlarmClockCheck,
+  Bookmark,
+  Copy,
+  Ellipsis,
+  Heart,
+  Star,
+} from "lucide-react";
 import React from "react";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
@@ -10,6 +17,8 @@ import remarkGfm from "remark-gfm";
 import { ChartRenderer } from "./ChartRenderer";
 import AnalyticCard from "./AnalyticCard";
 import { useSession } from "next-auth/react";
+import ShareMenu from "./MenuItems/ShareMenu";
+import RenderTable from "./RenderTable";
 
 type Message = {
   id: string;
@@ -32,13 +41,23 @@ interface Props {
   parsedMessage: string;
   chartType: any;
   analyticCard: any;
+  table: {
+    headers: string[];
+    rows: string[][];
+  } | null;
 }
 
 export const ChatMessageBubble = React.memo(function ChatMessageBubble(
   props: Props
 ) {
-  const { message, onUpdateMessage, parsedMessage, chartType, analyticCard } =
-    props;
+  const {
+    message,
+    onUpdateMessage,
+    parsedMessage,
+    chartType,
+    analyticCard,
+    table,
+  } = props;
   const { data: session } = useSession();
 
   const handleBookmark = () => {
@@ -85,14 +104,6 @@ export const ChatMessageBubble = React.memo(function ChatMessageBubble(
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
             components={{
-              table: ({ children }) => (
-                <table className="my-table">{children}</table>
-              ),
-              thead: ({ children }) => <thead>{children}</thead>,
-              tbody: ({ children }) => <tbody>{children}</tbody>,
-              tr: ({ children }) => <tr>{children}</tr>,
-              th: ({ children }) => <th>{children}</th>,
-              td: ({ children }) => <td>{children}</td>,
               ul: ({ children }) => (
                 <ul className="list-disc pl-5">{children}</ul>
               ),
@@ -105,29 +116,34 @@ export const ChatMessageBubble = React.memo(function ChatMessageBubble(
             {message.role === "assistant" ? parsedMessage : message.content}
           </ReactMarkdown>
 
-          {/* Render chart if present */}
+          {table && table?.headers?.length > 0 && <RenderTable table={table} />}
           {chartType?.data && <ChartRenderer chartData={chartType} />}
           {analyticCard?.tabs && <AnalyticCard analyticCard={analyticCard} />}
           {message.role === "assistant" && (
-            <div className="flex items-center gap-2.5 mt-2">
-              <Copy
-                onClick={handleCopy}
-                className="h-5 w-5 cursor-pointer hover:text-primary text-muted-foreground"
-              />
-              <Bookmark
-                onClick={handleBookmark}
-                className={`h-5 w-5 ${
-                  message.bookmark ? "fill-primary text-primary" : ""
-                } cursor-pointer hover:text-primary text-muted-foreground`}
-              />
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-2.5 mt-2">
+                <Copy
+                  onClick={handleCopy}
+                  className="h-5 w-5 cursor-pointer hover:text-primary text-muted-foreground"
+                />
+                <Bookmark
+                  onClick={handleBookmark}
+                  className={`h-5 w-5 ${
+                    message.bookmark ? "fill-primary text-primary" : ""
+                  } cursor-pointer hover:text-primary text-muted-foreground`}
+                />
 
-              <Star
-                onClick={handleFavorite}
-                className={`h-5 w-5 ${
-                  message.favorite ? "fill-yellow-500 text-yellow-500" : ""
-                } cursor-pointer hover:text-yellow-600 text-muted-foreground`}
-              />
-              <AlarmClockCheck className="h-5 cursor-pointer hover:text-primary w-5 text-muted-foreground" />
+                <Star
+                  onClick={handleFavorite}
+                  className={`h-5 w-5 ${
+                    message.favorite ? "fill-yellow-500 text-yellow-500" : ""
+                  } cursor-pointer hover:text-yellow-600 text-muted-foreground`}
+                />
+                <AlarmClockCheck className="h-5 cursor-pointer hover:text-primary w-5 text-muted-foreground" />
+              </div>
+              {(analyticCard?.tabs || table?.headers) && (
+                <ShareMenu data={analyticCard} table={table} />
+              )}
             </div>
           )}
 
