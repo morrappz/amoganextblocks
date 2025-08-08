@@ -10,8 +10,8 @@ export function generateCsv({
   data,
   table,
 }: {
-  data: TableDataProps;
-  table: TableProps;
+  data?: TableDataProps;
+  table?: TableProps;
 }) {
   const headers = table?.headers || data?.tabs?.table?.headers;
   const rows = table?.rows || data?.tabs?.table?.rows;

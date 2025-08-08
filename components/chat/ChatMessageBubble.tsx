@@ -116,7 +116,9 @@ export const ChatMessageBubble = React.memo(function ChatMessageBubble(
             {message.role === "assistant" ? parsedMessage : message.content}
           </ReactMarkdown>
 
-          {table && table?.headers?.length > 0 && <RenderTable table={table} />}
+          {table && table?.headers?.length > 0 && (
+            <RenderTable table={table} title={"Untitled"} />
+          )}
           {chartType?.data && <ChartRenderer chartData={chartType} />}
           {analyticCard?.tabs && <AnalyticCard analyticCard={analyticCard} />}
           {message.role === "assistant" && (

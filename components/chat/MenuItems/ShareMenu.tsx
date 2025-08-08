@@ -16,10 +16,7 @@ import {
   Sheet,
 } from "lucide-react";
 import React from "react";
-import { generatePDF } from "@/utils/generatePdf";
-import { generateCsv } from "@/utils/generateCsv";
-import { generateXlsx } from "@/utils/generateXlsx";
-import { generateDoc } from "@/utils/generateDoc";
+import { toast } from "sonner";
 
 export interface TableDataProps {
   title: string;
@@ -61,6 +58,41 @@ const ShareMenu = ({
   data: TableDataProps;
   table: TableProps;
 }) => {
+  const handleDownload = async (fileType: string) => {
+    try {
+      const payload = {
+        fileType: fileType,
+        data: data,
+        table: table,
+      };
+      const response = await fetch("/api/chat/file", {
+        method: "POST",
+        body: JSON.stringify(payload),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+      console.log("respnonse----", response);
+      if (!response.ok) {
+        toast.error("Error downloading file");
+        return;
+      }
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      const title = data?.title || "Untitled";
+      link.href = url;
+      link.setAttribute("download", `${title}.${fileType}`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success("File downloaded");
+    } catch (error) {
+      toast.error(`Error ${error}`);
+      throw error;
+    }
+  };
   return (
     <div>
       <DropdownMenu>
@@ -69,17 +101,29 @@ const ShareMenu = ({
         </DropdownMenuTrigger>
         <DropdownMenuContent>
           <DropdownMenuGroup>
-            <DropdownMenuItem onClick={() => generatePDF({ data, table })}>
+            <DropdownMenuItem
+              // onClick={() => generatePDF({ data, table })}
+              onClick={() => handleDownload("pdf")}
+            >
               <FileText className="w-5 h-5 text-muted-foreground" /> PDF
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => generateXlsx({ data, table })}>
+            <DropdownMenuItem
+              // onClick={() => generateXlsx({ data, table })}
+              onClick={() => handleDownload("xlsx")}
+            >
               <FileSpreadsheet className="w-5 h-5 text-muted-foreground" />{" "}
               Excel
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => generateCsv({ data, table })}>
+            <DropdownMenuItem
+              //  onClick={() => generateCsv({ data, table })}
+              onClick={() => handleDownload("csv")}
+            >
               <Sheet className="w-5 h-5 text-muted-foreground" /> CSV
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => generateDoc({ data, table })}>
+            <DropdownMenuItem
+              // onClick={() => generateDoc({ data, table })}
+              onClick={() => handleDownload("doc")}
+            >
               <File className="w-5 h-5 text-muted-foreground" />
               DOC
             </DropdownMenuItem>

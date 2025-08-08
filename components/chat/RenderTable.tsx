@@ -9,14 +9,27 @@ import {
   TableCell,
 } from "../ui/table";
 import { Button } from "../ui/button";
-import { ChevronsLeft, ChevronsRight } from "lucide-react";
+import {
+  ChevronsLeft,
+  ChevronsRight,
+  Download,
+  FileSpreadsheet,
+} from "lucide-react";
+import { generateCsv } from "@/utils/generateCsv";
+import { Badge } from "../ui/badge";
 
 interface TableProps {
   headers: string[];
   rows: string[][];
 }
 
-const RenderTable = ({ table }: { table: TableProps }) => {
+const RenderTable = ({
+  table,
+  title,
+}: {
+  table: TableProps;
+  title: string;
+}) => {
   const [currentIndex, setCurrentIndex] = React.useState(1);
   const rowsPerPage = 10;
 
@@ -90,6 +103,20 @@ const RenderTable = ({ table }: { table: TableProps }) => {
           </Button>
         </div>
       </div>
+      {/* <div className="border flex justify-between rounded-md p-2.5">
+        <div className="flex items-center gap-5">
+          <div className="bg-muted w-fit p-2.5 rounded-lg">
+            <FileSpreadsheet className="text-green-500 h-5 w-5" />
+          </div>
+          <p className="font-semibold">{title}</p>
+          <Badge className="bg-green-300">CSV</Badge>
+        </div>
+        <div>
+          <Button onClick={() => generateCsv({ table })} size={"icon"}>
+            <Download className="w-5 h-5 " />
+          </Button>
+        </div>
+      </div> */}
     </div>
   );
 };

@@ -94,7 +94,10 @@ const AnalyticCard = ({ analyticCard }: { analyticCard: any }) => {
                     ))}
                   </TableBody>
                 </Table> */}
-                <RenderTable table={analyticCard?.tabs?.table} />
+                <RenderTable
+                  table={analyticCard?.tabs?.table}
+                  title={analyticCard?.title}
+                />
                 {/* <div className="border-t-2 flex justify-between  p-2.5 w-full">
                   <div>
                     <span className="flex">Total: {totalRows?.length}</span>
