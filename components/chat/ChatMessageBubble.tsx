@@ -19,6 +19,8 @@ import AnalyticCard from "./AnalyticCard";
 import { useSession } from "next-auth/react";
 import ShareMenu from "./MenuItems/ShareMenu";
 import RenderTable from "./RenderTable";
+import AnalyticCardFileApi from "./AnalyticCardFileApi/AnalyticCardFileApi";
+import ShareFileMenu from "./AnalyticCardFileApi/ShareMenu";
 
 type Message = {
   id: string;
@@ -41,6 +43,7 @@ interface Props {
   parsedMessage: string;
   chartType: any;
   analyticCard: any;
+  analyticCardWithFileApi: any;
   table: {
     headers: string[];
     rows: string[][];
@@ -56,6 +59,7 @@ export const ChatMessageBubble = React.memo(function ChatMessageBubble(
     parsedMessage,
     chartType,
     analyticCard,
+    analyticCardWithFileApi,
     table,
   } = props;
   const { data: session } = useSession();
@@ -121,6 +125,11 @@ export const ChatMessageBubble = React.memo(function ChatMessageBubble(
           )}
           {chartType?.data && <ChartRenderer chartData={chartType} />}
           {analyticCard?.tabs && <AnalyticCard analyticCard={analyticCard} />}
+          {analyticCardWithFileApi?.table && (
+            <AnalyticCardFileApi
+              analyticCardWithFileApi={analyticCardWithFileApi}
+            />
+          )}
           {message.role === "assistant" && (
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-2.5 mt-2">
@@ -145,6 +154,9 @@ export const ChatMessageBubble = React.memo(function ChatMessageBubble(
               </div>
               {(analyticCard?.tabs || table?.headers) && (
                 <ShareMenu data={analyticCard} table={table} />
+              )}
+              {analyticCardWithFileApi?.table && (
+                <ShareFileMenu data={analyticCardWithFileApi} />
               )}
             </div>
           )}

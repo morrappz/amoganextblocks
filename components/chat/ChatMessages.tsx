@@ -76,11 +76,12 @@ export const ChatMessages = React.memo(function ChatMessages(props: {
       try {
         const parsedMsg = JSON.parse(content);
         // Only return parsed data if it has the expected structure
-        if (parsedMsg && typeof parsedMsg === "object" && parsedMsg.content) {
+        if (parsedMsg && typeof parsedMsg === "object") {
           return {
             parsedContent: parsedMsg.content,
             chartType: parsedMsg.chart || null,
             analyticCard: parsedMsg.analyticCard || null,
+            analyticCardWithFileApi: parsedMsg.analyticCardWithFileApi || null,
             table: parsedMsg.table || null,
           };
         } else {
@@ -89,6 +90,7 @@ export const ChatMessages = React.memo(function ChatMessages(props: {
             parsedContent: content,
             chartType: null,
             analyticCard: null,
+            analyticCardWithFileApi: null,
             table: null,
           };
         }
@@ -98,6 +100,7 @@ export const ChatMessages = React.memo(function ChatMessages(props: {
           parsedContent: content,
           chartType: null,
           analyticCard: null,
+          analyticCardWithFileApi: null,
           table: null,
         };
       }
@@ -118,6 +121,7 @@ export const ChatMessages = React.memo(function ChatMessages(props: {
         let parsedMessage = m.content;
         let chartType = null;
         let analyticCard = null;
+        let analyticCardWithFileApi = null;
         let table = null;
 
         if (m.role === "assistant") {
@@ -125,6 +129,7 @@ export const ChatMessages = React.memo(function ChatMessages(props: {
           parsedMessage = parsed.parsedContent;
           chartType = parsed.chartType;
           analyticCard = parsed.analyticCard;
+          analyticCardWithFileApi = parsed.analyticCardWithFileApi;
           table = parsed.table;
         }
 
@@ -138,6 +143,7 @@ export const ChatMessages = React.memo(function ChatMessages(props: {
             parsedMessage={parsedMessage}
             chartType={chartType}
             analyticCard={analyticCard}
+            analyticCardWithFileApi={analyticCardWithFileApi}
             table={table}
             // onBookmarkUpdate={handleBookmarkUpdate}
             // onFavoriteUpdate={handleFavoriteUpdate}
