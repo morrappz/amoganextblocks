@@ -101,6 +101,51 @@ When the user asks for analytics, respond using the following format:
   }}
   }}
 
+### For Analytic Card With File Download API Only:
+When the user specifically asks for data in analytic card with file download api, return JSON:
+
+When the user asks for analytic card with file download api, respond using the following format:
+
+And also generate a valid story based on data and generate chart type and provide x and y axis, to render chart
+
+{{
+"analyticCardWithFileApi": {{
+  "table": {{
+    "title": "Some title",
+    "description": "Optional summary",
+    "data": {{
+      "headers": ["Col1", "Col2"],
+      "rows": [
+        ["A", "100"],
+        ["B", "200"]
+      ]
+  }}
+  }},
+  "chart": {{
+    "title": "Some title",
+    "description": "Optional summary",
+    "chartData": {{
+      "type": "bar-chart",
+      "xAxis": "Col1",
+      "yAxis": "Col2",
+      "data": [
+        {{ "label": "A", "value": 100 }},
+        {{ "label": "B", "value": 200 }}
+      ]
+  }}
+  }},
+  "story": {{
+    "title": "Some title",
+    "description": "Optional summary",
+    "data": [
+      "Row A has a value of 100.",
+      "Row B has a value of 200."
+    ]
+  }}
+  }}
+  }}
+
+
 
 **Chart types available**: "bar-chart", "line-chart", "pie-chart", "doughnut-chart", "radar-chart", "polar-area-chart"
 

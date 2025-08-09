@@ -6,12 +6,12 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { fileType, data, table } = body;
+  const { fileType, chart, table, story } = body;
 
   try {
-    const headers = table?.headers || data?.tabs?.table?.headers;
-    const rows = table?.rows || data?.tabs?.table?.rows;
-    const title = `${data?.title || "Data"}`;
+    const headers = table?.data?.headers;
+    const rows = table?.data?.rows;
+    const title = `${table?.title || "Data"}`;
 
     if (!Array.isArray(headers) || !Array.isArray(rows)) {
       return new NextResponse("Invalid table structure", { status: 400 });
@@ -19,57 +19,53 @@ export async function POST(req: NextRequest) {
 
     switch (fileType) {
       case "pdf": {
-        const pdfResult = await generatePDFBuffer({ data, table });
-
+        const pdfResult = await generatePDFBuffer({ table, chart, story });
         return new NextResponse(pdfResult.buffer, {
           status: 200,
           headers: {
             "Content-Type": pdfResult.contentType,
             "Content-Disposition": `attachment; filename="${pdfResult.fileName}"`,
-            "Content-Length": pdfResult.buffer.length.toString(),
           },
         });
       }
 
       case "csv": {
-        const csvBuffer = generateCsvBuffer({ headers, rows, title });
+        const csvBuffer = generateCsvBuffer({ table, chart, story });
         return new NextResponse(csvBuffer, {
           status: 200,
           headers: {
-            "Content-Type": "text/csv",
+            "Content-Type": "text/csv; charset=utf-8",
             "Content-Disposition": `attachment; filename="${title}.csv"`,
           },
         });
       }
 
       case "xlsx": {
-        const {
-          buffer: xlsxBuffer,
-          fileName: xlsxFileName,
-          contentType: xlsxContentType,
-        } = generateXlsxBuffer({ data, table });
-
-        return new NextResponse(xlsxBuffer, {
+        const { buffer, fileName, contentType } = generateXlsxBuffer({
+          table,
+          chart,
+          story,
+        });
+        return new NextResponse(buffer, {
           status: 200,
           headers: {
-            "Content-Type": xlsxContentType,
-            "Content-Disposition": `attachment; filename="${xlsxFileName}"`,
+            "Content-Type": contentType,
+            "Content-Disposition": `attachment; filename="${fileName}"`,
           },
         });
       }
 
       case "doc": {
-        const {
-          buffer: docBuffer,
-          fileName: docFileName,
-          contentType: docContentType,
-        } = await generateDocBuffer({ data, table });
-
-        return new NextResponse(docBuffer, {
+        const { buffer, fileName, contentType } = await generateDocBuffer({
+          table,
+          chart,
+          story,
+        });
+        return new NextResponse(buffer, {
           status: 200,
           headers: {
-            "Content-Type": docContentType,
-            "Content-Disposition": `attachment; filename="${docFileName}"`,
+            "Content-Type": contentType,
+            "Content-Disposition": `attachment; filename="${fileName}"`,
           },
         });
       }

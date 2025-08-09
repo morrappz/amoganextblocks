@@ -6,6 +6,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { generateCsv } from "@/utils/generateCsv";
+import { generateDoc } from "@/utils/generateDoc";
+import { generatePDF } from "@/utils/generatePdf";
+import { generateXlsx } from "@/utils/generateXlsx";
 import {
   Ellipsis,
   File,
@@ -58,41 +62,41 @@ const ShareMenu = ({
   data: TableDataProps;
   table: TableProps;
 }) => {
-  const handleDownload = async (fileType: string) => {
-    try {
-      const payload = {
-        fileType: fileType,
-        data: data,
-        table: table,
-      };
-      const response = await fetch("/api/chat/file", {
-        method: "POST",
-        body: JSON.stringify(payload),
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-      console.log("respnonse----", response);
-      if (!response.ok) {
-        toast.error("Error downloading file");
-        return;
-      }
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      const title = data?.title || "Untitled";
-      link.href = url;
-      link.setAttribute("download", `${title}.${fileType}`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
-      toast.success("File downloaded");
-    } catch (error) {
-      toast.error(`Error ${error}`);
-      throw error;
-    }
-  };
+  // const handleDownload = async (fileType: string) => {
+  //   try {
+  //     const payload = {
+  //       fileType: fileType,
+  //       data: data,
+  //       table: table,
+  //     };
+  //     const response = await fetch("/api/chat/file", {
+  //       method: "POST",
+  //       body: JSON.stringify(payload),
+  //       headers: {
+  //         "Content-Type": "application/json",
+  //       },
+  //     });
+  //     console.log("respnonse----", response);
+  //     if (!response.ok) {
+  //       toast.error("Error downloading file");
+  //       return;
+  //     }
+  //     const blob = await response.blob();
+  //     const url = window.URL.createObjectURL(blob);
+  //     const link = document.createElement("a");
+  //     const title = data?.title || "Untitled";
+  //     link.href = url;
+  //     link.setAttribute("download", `${title}.${fileType}`);
+  //     document.body.appendChild(link);
+  //     link.click();
+  //     link.remove();
+  //     window.URL.revokeObjectURL(url);
+  //     toast.success("File downloaded");
+  //   } catch (error) {
+  //     toast.error(`Error ${error}`);
+  //     throw error;
+  //   }
+  // };
   return (
     <div>
       <DropdownMenu>
@@ -102,27 +106,27 @@ const ShareMenu = ({
         <DropdownMenuContent>
           <DropdownMenuGroup>
             <DropdownMenuItem
-              // onClick={() => generatePDF({ data, table })}
-              onClick={() => handleDownload("pdf")}
+              onClick={() => generatePDF({ data, table })}
+              // onClick={() => handleDownload("pdf")}
             >
               <FileText className="w-5 h-5 text-muted-foreground" /> PDF
             </DropdownMenuItem>
             <DropdownMenuItem
-              // onClick={() => generateXlsx({ data, table })}
-              onClick={() => handleDownload("xlsx")}
+              onClick={() => generateXlsx({ data, table })}
+              // onClick={() => handleDownload("xlsx")}
             >
               <FileSpreadsheet className="w-5 h-5 text-muted-foreground" />{" "}
               Excel
             </DropdownMenuItem>
             <DropdownMenuItem
-              //  onClick={() => generateCsv({ data, table })}
-              onClick={() => handleDownload("csv")}
+              onClick={() => generateCsv({ data, table })}
+              // onClick={() => handleDownload("csv")}
             >
               <Sheet className="w-5 h-5 text-muted-foreground" /> CSV
             </DropdownMenuItem>
             <DropdownMenuItem
-              // onClick={() => generateDoc({ data, table })}
-              onClick={() => handleDownload("doc")}
+              onClick={() => generateDoc({ data, table })}
+              // onClick={() => handleDownload("doc")}
             >
               <File className="w-5 h-5 text-muted-foreground" />
               DOC
