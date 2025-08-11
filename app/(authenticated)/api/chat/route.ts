@@ -170,7 +170,7 @@ Always ensure the chart output exactly matches the following JSON structure:
   }}
   }}
 
-
+## always give the chart data in x and y axis as above structure, dont give label and data
 
 Conversation so far:
 {chat_history}
