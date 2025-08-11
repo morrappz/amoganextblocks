@@ -1,6 +1,5 @@
 // chat window
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 // import { type Message } from "ai";
@@ -18,12 +17,16 @@ import {
   ArrowUp,
   Bot,
   Coins,
+  Ellipsis,
   FileJson,
   Globe,
+  HandHelping,
   LoaderCircle,
+  Logs,
   MessageCircle,
   Paperclip,
   Plus,
+  Settings,
   Settings2,
 } from "lucide-react";
 import { Checkbox } from "../ui/checkbox";
@@ -66,6 +69,8 @@ import History from "./MenuItems/History";
 import BookMark from "./MenuItems/Bookmark";
 import Favorites from "./MenuItems/Favorites";
 import { ChatMessages } from "./ChatMessages";
+import SuggestedPrompts from "./MenuItems/SuggestedPrompts";
+import Assistants from "./MenuItems/Assistants";
 
 type Message = {
   id: string;
@@ -88,205 +93,6 @@ type IntermediateStepType = {
   favorite: boolean;
   chart?: string;
 };
-
-// function ChatMessages(props: {
-//   messages: Message[];
-//   emptyStateComponent: ReactNode;
-//   sourcesForMessages: Record<string, any>;
-//   aiEmoji?: string;
-//   className?: string;
-//   onUpdateMessage: (messageId: string, updates: Partial<Message>) => void;
-//   // setBookmarks: Dispatch<SetStateAction<never[]>>;
-//   // setFavorites: Dispatch<SetStateAction<never[]>>;
-// }) {
-//   // const handleBookmarkUpdate = async () => {
-//   //   const updatedBookmarks = await getChatBookMarks("LangStarter");
-//   //   props.setBookmarks(updatedBookmarks);
-//   // };
-//   // const handleFavoriteUpdate = async () => {
-//   //   const updatedBookmarks = await getChatFavorites("LangStarter");
-//   //   props.setFavorites(updatedBookmarks);
-//   // };
-//   return (
-//     <div className="flex flex-col mt-5 -z-10 max-w-[768px] mx-auto pb-12 w-full">
-//       {props.messages.map((m, i) => {
-//         if (m.role === "system") {
-//           return <IntermediateStep key={m.id} message={m} />;
-//         }
-
-//         const sourceKey = (props.messages.length - 1 - i).toString();
-//         return (
-//           <ChatMessageBubble
-//             key={m.id}
-//             message={m}
-//             aiEmoji={props.aiEmoji}
-//             sources={props.sourcesForMessages[sourceKey]}
-//             onUpdateMessage={props.onUpdateMessage}
-//             // onBookmarkUpdate={handleBookmarkUpdate}
-//             // onFavoriteUpdate={handleFavoriteUpdate}
-//           />
-//         );
-//       })}
-//     </div>
-//   );
-// }
-
-// export function ChatInput(props: {
-//   onSubmit: (e: FormEvent<HTMLFormElement>) => void;
-//   onStop?: () => void;
-//   value: string;
-//   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-//   loading?: boolean;
-//   placeholder?: string;
-//   children?: ReactNode;
-//   className?: string;
-//   actions?: ReactNode;
-//   setSelectedLanguage: (value: string) => void;
-// }) {
-//   const disabled = props.loading && props.onStop == null;
-//   return (
-//     <form
-//       onSubmit={(e) => {
-//         e.stopPropagation();
-//         e.preventDefault();
-
-//         if (props.loading) {
-//           props.onStop?.();
-//         } else {
-//           props.onSubmit(e);
-//         }
-//       }}
-//       className={cn("flex w-full flex-col", props.className)}
-//     >
-//       <div className="border border-input bg-secondary rounded-lg flex flex-col gap-2 max-w-[768px] w-full mx-auto">
-//         <input
-//           value={props.value}
-//           placeholder={props.placeholder}
-//           onChange={props.onChange}
-//           className="border-none outline-none bg-transparent p-4"
-//         />
-
-//         <div className="flex justify-between ml-4 mr-2 mb-2">
-//           <div className="flex gap-3">
-//             <div className="flex gap-2.5 items-center">
-//               <DropdownMenu>
-//                 <DropdownMenuTrigger asChild>
-//                   <div className="flex items-center gap-2.5 bg-muted border-2 p-1  cursor-pointer rounded-full">
-//                     <Settings2 className="w-5 h-5" />
-//                     <h1 className="">Tools</h1>
-//                   </div>
-//                 </DropdownMenuTrigger>
-//                 <DropdownMenuContent>
-//                   <DropdownMenuGroup>
-//                     <DropdownMenuItem>
-//                       <Link
-//                         href="/langchain-chat/chat"
-//                         className="flex items-center gap-2.5"
-//                       >
-//                         <MessageCircle className="w-5 h-5" /> General
-//                       </Link>
-//                     </DropdownMenuItem>
-//                     <DropdownMenuItem>
-//                       <Link
-//                         href="/langchain-chat/structured_output"
-//                         className="flex items-center gap-2.5"
-//                       >
-//                         <FileJson className="w-5 h-5" /> Structured Output
-//                       </Link>
-//                     </DropdownMenuItem>
-//                     <DropdownMenuItem>
-//                       <Link
-//                         href="/langchain-chat/agents"
-//                         className="flex items-center gap-2.5"
-//                       >
-//                         <Globe className="w-5 h-5" /> Agents
-//                       </Link>
-//                     </DropdownMenuItem>
-//                     <DropdownMenuItem>
-//                       <Link
-//                         href="/langchain-chat/retrieval"
-//                         className="flex items-center gap-2.5"
-//                       >
-//                         <Bot className="w-5 h-5" /> Retrieval
-//                       </Link>
-//                     </DropdownMenuItem>
-//                     <DropdownMenuItem>
-//                       <Link
-//                         href="/langchain-chat/retrieval_agents"
-//                         className="flex items-center gap-2.5"
-//                       >
-//                         <Bot className="w-5 h-5" /> Retrieval Agents
-//                       </Link>
-//                     </DropdownMenuItem>
-//                   </DropdownMenuGroup>
-//                 </DropdownMenuContent>
-//               </DropdownMenu>
-//               <DropdownMenu>
-//                 <DropdownMenuTrigger asChild>
-//                   <div className="flex items-center gap-2.5 bg-muted border-2 p-1  cursor-pointer rounded-full">
-//                     <Settings2 className="w-5 h-5" />
-//                     <h1 className="">Language</h1>
-//                   </div>
-//                 </DropdownMenuTrigger>
-//                 <DropdownMenuContent>
-//                   <DropdownMenuGroup>
-//                     <DropdownMenuItem
-//                       onClick={() => props.setSelectedLanguage("english")}
-//                     >
-//                       English
-//                     </DropdownMenuItem>
-//                     <DropdownMenuItem
-//                       onClick={() => props.setSelectedLanguage("hindi")}
-//                     >
-//                       Hindi
-//                     </DropdownMenuItem>
-//                     <DropdownMenuItem
-//                       onClick={() => props.setSelectedLanguage("telugu")}
-//                     >
-//                       Telugu
-//                     </DropdownMenuItem>
-//                     <DropdownMenuItem
-//                       onClick={() => props.setSelectedLanguage("malaysia")}
-//                     >
-//                       Malaysia
-//                     </DropdownMenuItem>
-//                     <DropdownMenuItem
-//                       onClick={() => props.setSelectedLanguage("vietnam")}
-//                     >
-//                       Vietnam
-//                     </DropdownMenuItem>
-//                   </DropdownMenuGroup>
-//                 </DropdownMenuContent>
-//               </DropdownMenu>
-//             </div>
-//             {props.children}
-//           </div>
-
-//           <div className="flex gap-2 self-end">
-//             {props.actions}
-//             <Button
-//               size={"icon"}
-//               type="submit"
-//               className="self-end rounded-full"
-//               disabled={disabled}
-//             >
-//               {props.loading ? (
-//                 <span role="status" className="flex justify-center">
-//                   <LoaderCircle className="animate-spin" />
-//                   <span className="sr-only">Loading...</span>
-//                 </span>
-//               ) : (
-//                 <span>
-//                   <ArrowUp className="w-5 h-5" />
-//                 </span>
-//               )}
-//             </Button>
-//           </div>
-//         </div>
-//       </div>
-//     </form>
-//   );
-// }
 
 export function ScrollToBottom(props: { className?: string }) {
   const { isAtBottom, scrollToBottom } = useStickToBottomContext();
@@ -327,24 +133,6 @@ export function StickyToBottomContent(props: {
     </div>
   );
 }
-
-// export function ChatLayout(props: { content: ReactNode; footer: ReactNode }) {
-//   return (
-//     <StickToBottom>
-//       <StickyToBottomContent
-//         className="absolute inset-0"
-//         contentClassName="py-8 px-2"
-//         content={props.content}
-//         footer={
-//           <div className="sticky  bottom-8 px-2">
-//             <ScrollToBottom className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4" />
-//             {props.footer}
-//           </div>
-//         }
-//       />
-//     </StickToBottom>
-//   );
-// }
 
 export function ChatWindow(props: {
   endpoint: string;
@@ -437,41 +225,6 @@ export function ChatWindow(props: {
   const refreshFavorites = async () => {
     await fetchFavorites();
   };
-
-  // const [bookmarks, setBookmarks] = useState([]);
-  // const [history, setHistory] = useState([]);
-  // const [favorites, setFavorites] = useState([]);
-
-  // const handleHistory = async () => {
-  //   try {
-  //     const historyData = await getChatHistory("LangStarter");
-  //     setHistory(historyData);
-  //   } catch (error) {
-  //     console.error("Error fetching history:", error);
-  //     toast.error("Failed to update history");
-  //   }
-  // };
-
-  // // Fetch initial data when component mounts
-  // useEffect(() => {
-  //   const fetchInitialData = async () => {
-  //     try {
-  //       // Fetch bookmarks
-  //       const bookmarksData = await getChatBookMarks("LangStarter");
-  //       setBookmarks(bookmarksData);
-
-  //       // Fetch favorites
-  //       const favoritesData = await getChatFavorites("LangStarter");
-  //       setFavorites(favoritesData);
-  //     } catch (error) {
-  //       console.error("Error fetching initial data:", error);
-  //       toast.error("Failed to load initial data");
-  //     }
-  //   };
-
-  //   fetchInitialData();
-  //   handleHistory();
-  // }, []);
 
   useEffect(() => {
     const saveLogs = async () => {
@@ -887,7 +640,7 @@ export function ChatWindow(props: {
           </p>
         </div>
         <div className=" w-full justify-end items-center flex  gap-2.5 z-50">
-          <Coins className="text-yellow-500" />
+          {/* <Coins className="text-yellow-500" />
           <History
             history={history}
             onDropdownOpen={fetchHistory}
@@ -899,28 +652,55 @@ export function ChatWindow(props: {
             onDropdownOpen={fetchBookMarks}
             onBookMarkUpdate={refreshBookMarks}
             loading={bookMarkLoading}
-          />
+          /> */}
           <Favorites
             favorites={favorites}
             onDropdownOpen={fetchFavorites}
             onFavoriteUpdate={refreshFavorites}
             loading={favoriteLoading}
           />
-          {/* <HistoryView
-            history={history}
-            onHistoryUpdate={handleHistoryUpdate}
-          />
-          <BookMark
-            bookmarks={bookmarks}
-            onBookmarkUpdate={handleBookmarkUpdate}
-          />
-          <Favorites
-            favorites={favorites}
-            onFavoriteUpdate={handleFavoritesUpdate}
-          /> */}
+          <SuggestedPrompts />
           <Link href="/langchain-chat/chat">
             <Plus className=" text-muted-foreground" />
           </Link>
+          <DropdownMenu>
+            <DropdownMenuTrigger>
+              <Ellipsis className="w-5 h-5 text-muted-foreground" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuGroup>
+                <DropdownMenuItem>
+                  <Assistants />
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <History
+                    history={history}
+                    onDropdownOpen={fetchHistory}
+                    onHistoryUpdate={refreshHistory}
+                    loading={historyLoading}
+                  />
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <div className="flex items-center gap-2">
+                    <Coins className="text-yellow-500" />
+                    <span>Token Use</span>
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <div className="flex items-center gap-2">
+                    <Logs className="w-5 h-5 text-muted-foreground" />
+                    <span>Chat Logs</span>
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <div className="flex items-center gap-2">
+                    <Settings className="w-5 h-5 text-muted-foreground" />
+                    <span>Settings</span>
+                  </div>
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
       <ChatLayout

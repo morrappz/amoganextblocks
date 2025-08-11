@@ -61,13 +61,10 @@ const History = ({
         }}
       >
         <DropdownMenuTrigger asChild>
-          <Button variant={"ghost"} size={"icon"} className="rounded-full">
-            {loading ? (
-              <LoaderCircle className="w-5 h-5 text-muted-foreground animate-spin" />
-            ) : (
-              <HistoryIcon className="w-5 h-5 text-muted-foreground" />
-            )}
-          </Button>
+          <div className="flex items-center gap-2">
+            <HistoryIcon className="w-5 h-5 text-muted-foreground" />
+            <span>History</span>
+          </div>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="w-[300px]" side="bottom" align="end">
           <DropdownMenuGroup className="max-h-[400px]  overflow-y-auto">

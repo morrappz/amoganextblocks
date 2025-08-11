@@ -137,8 +137,6 @@ export async function deleteChat(id: string) {
   }
 }
 
-// Add this function to your actions file (@/app/(authenticated)/langchain-chat/lib/actions.ts)
-
 export async function updateMessageStatus({
   messageId,
   isLike,
@@ -151,8 +149,6 @@ export async function updateMessageStatus({
   favorite?: boolean;
 }) {
   try {
-    // Replace this with your actual database update logic
-    // This is just an example using a hypothetical database client
     console.log("id==============", messageId);
     const updateData: any = {};
 
@@ -180,5 +176,19 @@ export async function updateMessageStatus({
   } catch (error) {
     console.error("Error updating message status:", error);
     throw new Error("Failed to update message status");
+  }
+}
+
+export async function getFormSetupData() {
+  const session = await auth();
+  try {
+    const { data, error } = await postgrest
+      .from("form_setup")
+      .select("form_id,form_name,status,data_api_url,api_connection_json")
+      .filter("users_json", "cs", `["${session?.user?.user_email}"]`);
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    throw error;
   }
 }
