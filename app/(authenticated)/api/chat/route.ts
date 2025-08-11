@@ -153,6 +153,25 @@ And also generate a valid story based on data and generate chart type and provid
 - Use **plain text/markdown** for: explanations, conversations, lists, tables
 - Use **JSON charts** only when: user explicitly asks for charts, or when data visualization would be significantly more helpful than a table
 
+## Strict Rule for Consistent Data:
+Always ensure the chart output exactly matches the following JSON structure:
+
+"chart": {{
+  "title": "Some title",
+  "description": "Optional summary",
+  "chartData": {{
+    "type": "bar-chart",
+    "xAxis": "Col1",
+    "yAxis": "Col2",
+    "data": [
+      {{ "label": "A", "value": 100 }},
+      {{ "label": "B", "value": 200 }}
+    ]
+  }}
+  }}
+
+
+
 Conversation so far:
 {chat_history}
 
