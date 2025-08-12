@@ -1,8 +1,4 @@
-// chat window
-
 "use client";
-
-// import { type Message } from "ai";
 import { useChat } from "ai/react";
 import { useEffect, useState } from "react";
 import type { Dispatch, FormEvent, ReactNode, SetStateAction } from "react";
@@ -10,8 +6,8 @@ import { toast } from "sonner";
 import { StickToBottom, useStickToBottomContext } from "use-stick-to-bottom";
 
 import { ChatMessageBubble } from "@/components/chat/ChatMessageBubble";
-import { IntermediateStep } from "./IntermediateStep";
-import { Button } from "../ui/button";
+import { IntermediateStep } from "../IntermediateStep";
+import { Button } from "../../ui/button";
 import {
   ArrowDown,
   ArrowUp,
@@ -29,8 +25,8 @@ import {
   Settings,
   Settings2,
 } from "lucide-react";
-import { Checkbox } from "../ui/checkbox";
-import { UploadDocumentsForm } from "./UploadDocumentsForm";
+import { Checkbox } from "../../ui/checkbox";
+import { UploadDocumentsForm } from "../UploadDocumentsForm";
 import {
   Dialog,
   DialogContent,
@@ -38,7 +34,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "../ui/dialog";
+} from "../../ui/dialog";
 import { cn } from "@/utils/cn";
 import {
   createChat,
@@ -47,7 +43,8 @@ import {
   updateMessageStatus,
   getChatBookMarks,
   getChatHistory,
-  getChatFavorites, // Add this function to your actions
+  getChatFavorites,
+  fetchFormSetupData, // Add this function to your actions
 } from "@/app/(authenticated)/langchain-chat/lib/actions";
 import { useSession } from "next-auth/react";
 import { v4 as uuidv4 } from "uuid";
@@ -57,20 +54,34 @@ import {
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "../ui/dropdown-menu";
+} from "../../ui/dropdown-menu";
 import Link from "next/link";
 import { saveUserLogs } from "@/utils/userLogs";
 import getCurrentBrowser from "@/utils/getCurrentBrowser";
 import getUserOS from "@/utils/getCurrentOS";
 import getUserLocation from "@/utils/geoLocation";
-import { ChatInput } from "./ChatInput";
-import { ChatLayout } from "./ChatLayout";
-import History from "./MenuItems/History";
-import BookMark from "./MenuItems/Bookmark";
-import Favorites from "./MenuItems/Favorites";
-import { ChatMessages } from "./ChatMessages";
-import SuggestedPrompts from "./MenuItems/SuggestedPrompts";
-import Assistants from "./MenuItems/Assistants";
+import { AssistantInput } from "./AssistantInput";
+import { ChatLayout } from "../ChatLayout";
+import History from "../MenuItems/History";
+import BookMark from "../MenuItems/Bookmark";
+import Favorites from "../MenuItems/Favorites";
+import { ChatMessages } from "../ChatMessages";
+import SuggestedPrompts from "../MenuItems/SuggestedPrompts";
+import Assistants from "../MenuItems/Assistants";
+import { AssistantData, ChartData, Content, Query } from "../types/types";
+import { AssistantMessages } from "./AssistantMessages";
+import { AssistantLayout } from "./AssistantLayout";
+
+// type Message = {
+//   id: string;
+//   role: "user" | "assistant" | "system";
+//   content: string;
+//   createdAt: Date;
+//   isLike?: boolean;
+//   bookmark?: boolean;
+//   favorite?: boolean;
+//   chart?: any; // Can now hold complex chart objects
+// };
 
 type Message = {
   id: string;
@@ -80,18 +91,9 @@ type Message = {
   isLike?: boolean;
   bookmark?: boolean;
   favorite?: boolean;
-  chart?: any; // Can now hold complex chart objects
-};
-
-type IntermediateStepType = {
-  id: string;
-  role: string;
-  content: string;
-  createdAt: Date;
-  isLike: boolean;
-  bookmark: boolean;
-  favorite: boolean;
-  chart?: string;
+  table_columns?: string[];
+  chart: ChartData;
+  analysisPrompt?: { text: string; data: any };
 };
 
 export function ScrollToBottom(props: { className?: string }) {
@@ -134,24 +136,23 @@ export function StickyToBottomContent(props: {
   );
 }
 
-export function ChatWindow(props: {
+export function AssistantWindow(props: {
   endpoint: string;
-  emptyStateComponent: ReactNode;
+  emptyStateComponent?: ReactNode;
   placeholder?: string;
   emoji?: string;
   showIngestForm?: boolean;
   showIntermediateStepsToggle?: boolean;
+  assistantId: string;
   chatId?: string;
 }) {
-  const [showIntermediateSteps, setShowIntermediateSteps] = useState(
-    !!props.showIntermediateStepsToggle
-  );
-  const [intermediateStepsLoading, setIntermediateStepsLoading] =
-    useState(false);
   const [currentChatId, setCurrentChatId] = useState(props.chatId);
   const [messagesLoaded, setMessagesLoaded] = useState(false);
-  const [selectedLanguage, setSelectedLanguage] = useState("english");
-  const [selectedAIModel, setSelectedAIModel] = useState("openai");
+  const [jsonData, setJsonData] = useState<AssistantData[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
   const msgId = uuidv4();
 
   const [sourcesForMessages, setSourcesForMessages] = useState<
@@ -164,6 +165,19 @@ export function ChatWindow(props: {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [bookMarkLoading, setBookMarkLoading] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchAssistantData = async () => {
+      try {
+        const response = await fetchFormSetupData(props.assistantId);
+
+        setJsonData(response);
+      } catch (error) {
+        console.error("Failed fetching assistant data:", error);
+      }
+    };
+    fetchAssistantData();
+  }, [props.assistantId]);
 
   // Fetch history when dropdown opens
   const fetchHistory = async () => {
@@ -247,81 +261,6 @@ export function ChatWindow(props: {
 
   const { data: session } = useSession();
 
-  const chat = useChat({
-    api: props.endpoint,
-    id: currentChatId,
-    body: {
-      language: selectedLanguage,
-      aiModel: selectedAIModel,
-    },
-    onResponse(response) {
-      const sourcesHeader = response.headers.get("x-sources");
-      const sources = sourcesHeader
-        ? JSON.parse(Buffer.from(sourcesHeader, "base64").toString("utf8"))
-        : [];
-
-      const messageIndexHeader = response.headers.get("x-message-index");
-      if (sources.length && messageIndexHeader !== null) {
-        setSourcesForMessages({
-          ...sourcesForMessages,
-          [messageIndexHeader]: sources,
-        });
-      }
-    },
-    streamMode: "text",
-    onError: (e) =>
-      toast.error(`Error while processing your request`, {
-        description: e.message,
-      }),
-    onFinish: async (message) => {
-      // Save assistant messages to the database
-      if (message.role === "assistant") {
-        try {
-          let chatIdToUse = currentChatId;
-          if (!chatIdToUse) {
-            const pathParts = window.location.pathname.split("/");
-            const chatIdFromUrl = pathParts[pathParts.length - 1];
-            chatIdToUse =
-              chatIdFromUrl && chatIdFromUrl !== "chat"
-                ? chatIdFromUrl
-                : uuidv4();
-          }
-
-          // Save the original message content to the database
-          await saveMessage({
-            id: message.id || `msg-${Date.now()}`,
-            chatId: chatIdToUse,
-            role: "assistant",
-            content: message.content, // Save original content
-            chat_group: "LangStarter",
-            status: "active",
-            user_id: session?.user?.user_catalog_id || "",
-            createdAt: new Date().toISOString(),
-            isLike: false,
-            bookmark: false,
-            favorite: false,
-          });
-          // handleHistory();
-        } catch (error) {
-          console.error("Failed to save assistant message:", error);
-          toast.error("Failed to save assistant message");
-          await saveUserLogs({
-            status: "failure",
-            description: "Assistant message failed to save",
-            event_type: "Assistant message save failed",
-            browser: getCurrentBrowser(),
-            device: getUserOS(),
-            geo_location: await getUserLocation(),
-            operating_system: getUserOS(),
-            response_error: true,
-            error_message: error,
-          });
-        }
-      }
-    },
-    generateId: () => uuidv4(),
-  });
-
   // Function to update message status
   const handleUpdateMessage = async (
     messageId: string,
@@ -329,10 +268,10 @@ export function ChatWindow(props: {
   ) => {
     try {
       // Update local state
-      const updatedMessages = chat.messages.map((msg) =>
+      const updatedMessages = messages.map((msg) =>
         msg.id === messageId ? { ...msg, ...updates } : msg
       );
-      chat.setMessages(updatedMessages);
+      setMessages(updatedMessages);
 
       // Update database if currentChatId exists
       if (currentChatId) {
@@ -364,7 +303,7 @@ export function ChatWindow(props: {
     }
   };
 
-  // Load existing messages when component mounts or chatId changes
+  //Load existing messages when component mounts or chatId changes
   useEffect(() => {
     const loadMessages = async () => {
       setMessagesLoaded(false); // Reset loading state
@@ -383,20 +322,22 @@ export function ChatWindow(props: {
                 isLike: msg.isLike,
                 bookmark: msg.bookmark,
                 favorite: msg.favorite,
+                table_columns: msg.table_columns,
+                chart: msg.chart,
               })
             );
-            chat.setMessages(formattedMessages);
+            setMessages(formattedMessages);
           } else {
             // No messages found, clear the chat
-            chat.setMessages([]);
+            setMessages([]);
           }
         } catch (error) {
           console.error("Failed to load messages:", error);
-          chat.setMessages([]); // Clear messages on error
+          setMessages([]); // Clear messages on error
         }
       } else {
         // No chatId provided (new chat), clear everything
-        chat.setMessages([]);
+        setMessages([]);
         // Clear sources and reset other states
         setSourcesForMessages({});
       }
@@ -426,7 +367,7 @@ export function ChatWindow(props: {
       window.history.replaceState(
         window.history.state,
         "",
-        `/langchain-chat/chat/${newChatId}`
+        `/langchain-chat/assistant/${props.assistantId}/${newChatId}`
       );
 
       // Refresh history after creating new chat
@@ -442,216 +383,169 @@ export function ChatWindow(props: {
     }
   };
 
-  const saveUserMessage = async (
-    chatId: string,
-    messageId: string,
-    content: string
-  ) => {
+  const handleAssistant = async (assistant: Query, apiConnection: string) => {
     try {
-      await saveMessage({
-        id: messageId,
-        chatId: chatId,
+      let botResponse;
+      const assistantId = uuidv4();
+      const assistantResponseId = uuidv4();
+      let chatId = currentChatId;
+
+      // if there is no chat Id, create new chat and redirect
+      if (!chatId) {
+        try {
+          chatId = await createNewChatAndRedirect(assistant?.name);
+          setCurrentChatId(chatId);
+        } catch (error) {
+          console.error(error);
+          return; // Exit if chat creation failed
+        }
+      }
+
+      const assistantMsg = {
+        id: assistantId,
+        content: assistant.name,
         role: "user",
-        content: content,
-        chat_group: "LangStarter",
-        status: "active",
+        bookmark: null,
+        isLike: null,
+        favorite: null,
         user_id: session?.user?.user_catalog_id,
-        createdAt: new Date().toISOString(),
-        isLike: false,
-        bookmark: false,
-        favorite: false,
+      };
+
+      setMessages((prev) => [...prev, assistantMsg]);
+      await saveMessage({
+        id: assistantId,
+        chatId: currentChatId,
+        content: assistant.name,
+        role: "user",
+        user_id: session?.user?.user_catalog_id,
+        chat_group: "LangStarter",
       });
+
+      try {
+        const field = assistant.field;
+        const response = await fetch(assistant.api, {
+          method: "GET",
+          headers: {
+            Authorization: apiConnection,
+          },
+        });
+        const result = await response.json();
+        const keys =
+          field &&
+          field
+            .match(/\['(.+?)'\]/g)
+            .map((k: any) => k.replace(/\['|'\]/g, ""));
+
+        const value =
+          keys &&
+          keys.reduce(
+            (obj: any, key: any) => (obj ? obj[key] : undefined),
+            result
+          );
+
+        botResponse = Array.isArray(result) ? JSON.stringify(result) : value;
+
+        const assistantResponse = {
+          id: assistantResponseId,
+          content: botResponse,
+          role: "assistant",
+          table_columns: assistant.table_columns,
+          chart: assistant.chart,
+          bookmark: null,
+          isLike: null,
+          favorite: null,
+          user_id: session?.user?.user_catalog_id,
+          analysisPrompt: {
+            text: "Do you want to analyze the data?",
+            data: botResponse,
+          },
+        };
+        setMessages((prev) => [...prev, assistantResponse]);
+        await saveMessage({
+          id: assistantResponseId,
+          chatId: currentChatId,
+          content: botResponse,
+          role: "assistant",
+          table_columns: assistant.table_columns,
+          chart: assistant.chart,
+          bookmark: null,
+          isLike: null,
+          favorite: null,
+          user_id: session?.user?.user_catalog_id,
+          chat_group: "LangStarter",
+        });
+
+        setIsLoading(false);
+      } catch (error) {
+        setIsLoading(false);
+        throw error;
+      }
     } catch (error) {
-      console.error("Failed to save user message:", error);
-      toast.error("Failed to save user message");
+      console.error(error);
+      throw error;
     }
   };
 
-  async function sendMessage(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    if (chat.isLoading || intermediateStepsLoading) return;
-
-    const userMessage = chat.input;
-    if (!userMessage.trim()) return;
-
-    let chatId = currentChatId;
-
-    // Create new chat if this is the first message
-    if (!chatId) {
-      try {
-        chatId = await createNewChatAndRedirect(userMessage);
-        setCurrentChatId(chatId);
-      } catch (error) {
-        console.error(error);
-        return; // Exit if chat creation failed
-      }
-    }
-
-    // Save user message
-    const userMessageId = uuidv4();
-    await saveUserMessage(chatId, userMessageId, userMessage);
-
-    if (!showIntermediateSteps) {
-      // Simple case: let useChat handle the flow and onFinish will save the response
-      chat.handleSubmit(e);
-      return;
-    }
-
-    // Complex case: Handle intermediate steps manually
-    setIntermediateStepsLoading(true);
-
-    // Clear input and add user message to UI
-    chat.setInput("");
-    const messagesWithUserReply = chat.messages.concat({
-      id: userMessageId,
-      content: userMessage,
-      role: "user",
-      createdAt: new Date(),
-      isLike: false,
-      bookmark: false,
-      favorite: false,
-    });
-    chat.setMessages(messagesWithUserReply);
-
+  const handleAnalyzeData = async (messageId: string, dataToAnalyze: any) => {
+    setIsLoading(true);
     try {
-      const response = await fetch(props.endpoint, {
+      const response = await fetch("/api/chat/analyze-data", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          messages: messagesWithUserReply,
-          show_intermediate_steps: true,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ data: dataToAnalyze }),
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        toast.error("Error analyzing data");
+        console.error("Error------");
+        return;
+      }
+      
+      const analysisResult = await response.json();
+      
+      // Convert character codes to string if the content is an object with numeric keys
+      let content = analysisResult.content;
+      if (typeof content === 'object' && content !== null && !Array.isArray(content)) {
+        const charCodes = Object.values(content).map(Number);
+        content = String.fromCharCode(...charCodes);
       }
 
-      const json = await response.json();
-      setIntermediateStepsLoading(false);
+      console.log("analysisResult------", content);
 
-      const responseMessages: Message[] = json.messages;
-
-      // Represent intermediate steps as system messages for display purposes
-      const toolCallMessages = responseMessages.filter(
-        (responseMessage: Message) => {
-          return (
-            (responseMessage.role === "assistant" &&
-              !!responseMessage.tool_calls?.length) ||
-            responseMessage.role === "tool"
-          );
-        }
-      );
-
-      const intermediateStepMessages: IntermediateStepType[] = [];
-      for (let i = 0; i < toolCallMessages.length; i += 2) {
-        const aiMessage = toolCallMessages[i];
-        const toolMessage = toolCallMessages[i + 1];
-        intermediateStepMessages.push({
-          id: msgId,
-          role: "system" as const,
-          content: JSON.stringify({
-            action: aiMessage.tool_calls?.[0],
-            observation: toolMessage.content,
-          }),
-          createdAt: new Date(),
-          isLike: false,
-          bookmark: false,
-          favorite: false,
-        });
-      }
-
-      const newMessages = [...messagesWithUserReply];
-      for (const message of intermediateStepMessages) {
-        newMessages.push(message);
-        chat.setMessages([...newMessages]);
-        await new Promise((resolve) =>
-          setTimeout(resolve, 1000 + Math.random() * 1000)
-        );
-      }
-
-      const finalAssistantMessage = {
-        id: msgId,
-        content: responseMessages[responseMessages.length - 1].content,
+      // Add the analysis result as a new assistant message
+      const analysisMessage = {
+        id: Date.now().toString(),
         role: "assistant" as const,
+        content: content || "Analysis completed",
         createdAt: new Date(),
-        isLike: false,
-        bookmark: false,
-        favorite: false,
+        analysisPrompt: undefined,
+        chart: {},
+        text: content || "Analysis completed",
+        data: {},
       };
 
-      chat.setMessages([...newMessages, finalAssistantMessage]);
-
-      // Save the final assistant message
-      try {
-        await saveMessage({
-          id: msgId,
-          chatId: chatId,
-          role: "assistant",
-          content: finalAssistantMessage.content,
-          chat_group: "LangStarter",
-          status: "active",
-          user_id: session?.user?.user_catalog_id,
-          createdAt: new Date().toISOString(),
-          isLike: false,
-          bookmark: false,
-          favorite: false,
-        });
-      } catch (error) {
-        console.error("Failed to save assistant message:", error);
-        toast.error("Failed to save assistant message");
-      }
+      setMessages((prevMessages) => [...prevMessages, analysisMessage]);
+      toast.success("Data analyzed successfully!");
     } catch (error) {
-      setIntermediateStepsLoading(false);
-      console.error("Error in sendMessage:", error);
-      toast.error("Failed to process message");
+      console.error("Analysis failed:", error);
+      toast.error("Failed to analyze data.");
+    } finally {
+      setIsLoading(false);
     }
-  }
+  };
 
-  // Don't render until messages are loaded (or confirmed empty)
-  if (!messagesLoaded) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <LoaderCircle className="animate-spin w-8 h-8" />
-      </div>
+  const handleDismissAnalysisPrompt = (messageId: string) => {
+    setMessages((prevMessages) =>
+      prevMessages.map((msg) =>
+        msg.id === messageId ? { ...msg, analysisPrompt: undefined } : msg
+      )
     );
-  }
-  // const handleBookmarkUpdate = async () => {
-  //   const updatedBookmarks = await getChatBookMarks("LangStarter");
-  //   setBookmarks(updatedBookmarks);
-  // };
-  // const handleHistoryUpdate = async () => {
-  //   const updatedHistory = await getChatHistory("LangStarter");
-  //   setHistory(updatedHistory);
-  // };
-  // const handleFavoritesUpdate = async () => {
-  //   const updatedBookmarks = await getChatFavorites("LangStarter");
-  //   setFavorites(updatedBookmarks);
-  // };
-  // console.log("messages-----", chat.messages);
+  };
+
   return (
     <div className="">
       <div className="flex relative z-50 bg-background items-center">
-        <div className=" bg-muted rounded-full p-2.5 ">
-          <p className="flex text-sm">
-            Model: <span className="capitalize"> {selectedAIModel}</span>
-          </p>
-        </div>
         <div className=" w-full justify-end items-center flex  gap-2.5 z-50">
-          {/* <History
-            history={history}
-            onDropdownOpen={fetchHistory}
-            onHistoryUpdate={refreshHistory}
-            loading={historyLoading}
-          /> */}
-          {/* <BookMark
-            bookmarks={bookmarks}
-            onDropdownOpen={fetchBookMarks}
-            onBookMarkUpdate={refreshBookMarks}
-            loading={bookMarkLoading}
-          /> */}
           <Favorites
             favorites={favorites}
             onDropdownOpen={fetchFavorites}
@@ -710,31 +604,36 @@ export function ChatWindow(props: {
           </DropdownMenu>
         </div>
       </div>
-      <ChatLayout
+      <AssistantLayout
         content={
-          chat.messages.length === 0 ? (
-            <div>{props.emptyStateComponent}</div>
+          jsonData[0]?.content?.length === 0 ? (
+            <div>
+              <h1 className="text-center">No Data Avaliable.</h1>
+            </div>
           ) : (
-            <ChatMessages
+            <AssistantMessages
               aiEmoji={props.emoji}
-              messages={chat.messages}
+              messages={messages}
               emptyStateComponent={props.emptyStateComponent}
               sourcesForMessages={sourcesForMessages}
               onUpdateMessage={handleUpdateMessage}
+              jsonData={jsonData}
+              handleAssistant={handleAssistant}
+              onAnalyzeData={handleAnalyzeData}
+              onDismissAnalysisPrompt={handleDismissAnalysisPrompt}
+
               // setBookmarks={setBookmarks}
               // setFavorites={setFavorites}
             />
           )
         }
         footer={
-          <ChatInput
-            value={chat.input}
-            onChange={chat.handleInputChange}
-            onSubmit={sendMessage}
-            loading={chat.isLoading || intermediateStepsLoading}
-            placeholder={props.placeholder ?? "What's it like to be a pirate?"}
-            setSelectedLanguage={setSelectedLanguage}
-            setSelectedAIModel={setSelectedAIModel}
+          <AssistantInput
+            value={input}
+            setValue={setInput}
+            onSubmit={handleAssistant}
+            loading={isLoading}
+            placeholder={props.placeholder}
           >
             {props.showIngestForm && (
               <Dialog>
@@ -742,7 +641,7 @@ export function ChatWindow(props: {
                   <Button
                     variant="ghost"
                     className="pl-2 pr-3 -ml-2"
-                    disabled={chat.messages.length !== 0}
+                    disabled={messages.length !== 0}
                   >
                     <Paperclip className="size-4" />
                     <span>Upload document</span>
@@ -759,22 +658,7 @@ export function ChatWindow(props: {
                 </DialogContent>
               </Dialog>
             )}
-
-            {props.showIntermediateStepsToggle && (
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="show_intermediate_steps"
-                  name="show_intermediate_steps"
-                  checked={showIntermediateSteps}
-                  disabled={chat.isLoading || intermediateStepsLoading}
-                  onCheckedChange={(e) => setShowIntermediateSteps(!!e)}
-                />
-                <label htmlFor="show_intermediate_steps" className="text-sm">
-                  Show intermediate steps
-                </label>
-              </div>
-            )}
-          </ChatInput>
+          </AssistantInput>
         }
       />
     </div>

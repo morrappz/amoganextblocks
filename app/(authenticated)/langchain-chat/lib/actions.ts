@@ -99,7 +99,6 @@ export async function saveMessage(payload) {
 }
 
 export async function getMessagesByChatId(chatId: string) {
-  console.log("chatId-----", chatId);
   const session = await auth();
   try {
     const { data, error } = await postgrest
@@ -111,7 +110,6 @@ export async function getMessagesByChatId(chatId: string) {
       .order("createdAt", { ascending: true });
 
     if (error) throw error;
-    console.log("data-----", data);
     return data;
   } catch (error) {
     console.error("Failed to get messages:", error);
@@ -149,7 +147,6 @@ export async function updateMessageStatus({
   favorite?: boolean;
 }) {
   try {
-    console.log("id==============", messageId);
     const updateData: any = {};
 
     if (isLike !== undefined) {
@@ -161,8 +158,6 @@ export async function updateMessageStatus({
     if (favorite !== undefined) {
       updateData.favorite = favorite;
     }
-
-    console.log("update-----", updateData);
 
     const { data, error } = await postgrest
       .asAdmin()
@@ -187,6 +182,21 @@ export async function getFormSetupData() {
       .select("form_id,form_name,status,data_api_url,api_connection_json")
       .filter("users_json", "cs", `["${session?.user?.user_email}"]`);
     if (error) throw error;
+    return data;
+  } catch (error) {
+    throw error;
+  }
+}
+
+export async function fetchFormSetupData(formId: string) {
+  try {
+    const { data, error } = await postgrest
+      .from("form_setup")
+      .select(
+        "form_name, form_id, content, data_api_url,content,api_connection_json,db_connection_json,story_api"
+      )
+      .eq("form_id", formId);
+    if (error) return error;
     return data;
   } catch (error) {
     throw error;

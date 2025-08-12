@@ -15,9 +15,9 @@ const SuggestedPrompts = () => {
     <div>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant={"ghost"} size={"icon"} className="rounded-full">
-            <HelpingHand className="w-5 h-5 text-muted-foreground" />
-          </Button>
+          {/* <Button variant={"ghost"} size={"icon"} className="rounded-full"> */}
+          <HelpingHand className="w-5 h-5 cursor-pointer text-muted-foreground" />
+          {/* </Button> */}
         </DropdownMenuTrigger>
         <DropdownMenuContent className="w-[300px]" side="bottom" align="end">
           <DropdownMenuGroup className="max-h-[400px]  overflow-y-auto">
