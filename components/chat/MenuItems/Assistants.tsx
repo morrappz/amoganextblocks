@@ -10,6 +10,7 @@ import {
 import { Bot, LoaderCircle } from "lucide-react";
 
 import { getFormSetupData } from "@/app/(authenticated)/langchain-chat/lib/actions";
+import Link from "next/link";
 
 interface FormSetup {
   form_id: number;
@@ -61,7 +62,11 @@ const Assistants = () => {
                   <div className="flex justify-between w-full items-center">
                     <div className="overflow-ellipsis hover:scale-105 duration-300 ease-in-out flex-1">
                       <p className="max-w-[90%] overflow-ellipsis line-clamp-1">
-                        {item.form_name}
+                        <Link
+                          href={`/langchain-chat/assistant/${item.form_id}`}
+                        >
+                          {item.form_name}
+                        </Link>
                       </p>
                     </div>
                   </div>

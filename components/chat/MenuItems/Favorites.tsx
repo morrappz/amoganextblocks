@@ -57,12 +57,12 @@ const Favorites = ({
         }}
       >
         <DropdownMenuTrigger asChild>
-          <Button variant={"ghost"} size={"icon"} className="rounded-full">
-            <Star className="w-5 h-5 text-muted-foreground" />
-          </Button>
+          {/* <Button variant={"ghost"} size={"icon"} className="rounded-full"> */}
+          <Star className="w-5 h-5 cursor-pointer text-muted-foreground" />
+          {/* </Button> */}
         </DropdownMenuTrigger>
-        <DropdownMenuContent>
-          <DropdownMenuGroup className="max-h-[400px] overflow-y-auto md:max-w-[300px]">
+        <DropdownMenuContent className="w-[300px]" side="bottom" align="end">
+          <DropdownMenuGroup className="max-h-[400px] overflow-y-auto ">
             {loading ? (
               <div className="flex items-center justify-center p-4">
                 <LoaderCircle className="w-6 h-6 animate-spin text-muted-foreground" />
