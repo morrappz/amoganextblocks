@@ -15,7 +15,7 @@ import { Button } from "../../ui/button";
 import { Query } from "../types/types";
 
 export function AssistantInput(props: {
-  onSubmit: (assistant: Query, apiConnection: string) => Promise<void>;
+  onSubmit: () => Promise<void>;
 
   value: string;
   setValue: (value: string) => void;
@@ -30,6 +30,7 @@ export function AssistantInput(props: {
       onSubmit={(e) => {
         e.stopPropagation();
         e.preventDefault();
+        props.onSubmit();
 
         // props.onSubmit(e);
       }}

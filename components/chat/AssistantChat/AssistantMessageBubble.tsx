@@ -35,7 +35,7 @@ type Message = {
   bookmark?: boolean;
   favorite?: boolean;
   table_columns?: string[];
-  chart: ChartData;
+  chart?: ChartData;
   analysisPrompt?: { text: string; data: any };
 };
 

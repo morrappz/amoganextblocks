@@ -1,30 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Message as VercelChatMessage, StreamingTextResponse } from "ai";
-
+import { StreamingTextResponse } from "ai";
 import { ChatOpenAI } from "@langchain/openai";
-import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
-import { ChatGroq } from "@langchain/groq";
-import { ChatMistralAI } from "@langchain/mistralai";
-import { ChatDeepSeek } from "@langchain/deepseek";
-import { ChatAnthropic } from "@langchain/anthropic";
 import { PromptTemplate } from "@langchain/core/prompts";
-import {
-  HttpResponseOutputParser,
-  StructuredOutputParser,
-} from "langchain/output_parsers";
 
 export const runtime = "edge";
 
-/**
- * This handler initializes and calls a simple chain with a prompt,
- * chat model, and output parser. See the docs for more information:
- *
- * https://js.langchain.com/docs/guides/expression_language/cookbook#prompttemplate--llm--outputparser
- */
+interface ChatMessage {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+}
+
+interface ApiRequest {
+  data: any;
+  messages?: ChatMessage[];
+  userPrompt?: string;
+}
+
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { data } = body;
+    const { data, messages, userPrompt }: ApiRequest = await req.json();
 
     if (!data) {
       return NextResponse.json(
@@ -33,35 +27,97 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const TEMPLATE = `You are a helpful assistant. Please analyze and summarize the following data in a clear and concise way. Focus on the key points and provide meaningful insights:
-
-{data}`;
-
-    const prompt = PromptTemplate.fromTemplate(TEMPLATE);
-
-    // Use the first available model (you can adjust this based on your preference)
+    // Initialize the model
     const model = new ChatOpenAI({
       temperature: 0.7,
       model: "gpt-4-turbo-preview",
-      streaming: false, // Disable streaming for this endpoint
+      streaming: true,
     });
 
-    const outputParser = new HttpResponseOutputParser();
+    let chain;
+    let input;
 
-    const chain = prompt.pipe(model).pipe(outputParser);
+    if (userPrompt && messages) {
+      // Chat with context mode
+      const chatTemplate = `You are a helpful data analysis assistant. You have access to the following data:
 
-    const result = await chain.invoke({
-      data: typeof data === "string" ? data : JSON.stringify(data, null, 2),
+{data}
+
+Previous conversation:
+{history}
+
+User: {userPrompt}
+Assistant:`;
+
+      const prompt = PromptTemplate.fromTemplate(chatTemplate);
+      chain = prompt.pipe(model);
+      
+      // Format conversation history
+      const history = messages
+        .map(m => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`)
+        .join('\n');
+      
+      input = {
+        data: typeof data === "string" ? data : JSON.stringify(data, null, 2),
+        history,
+        userPrompt
+      };
+    } else {
+      // Simple data analysis mode
+      const analysisTemplate = `You are a helpful data analysis assistant. Please analyze and summarize the following data in a clear and concise way. Focus on the key points and provide meaningful insights:
+
+{data}`;
+
+      const prompt = PromptTemplate.fromTemplate(analysisTemplate);
+      chain = prompt.pipe(model);
+      
+      input = {
+        data: typeof data === "string" ? data : JSON.stringify(data, null, 2)
+      };
+    }
+
+    const stream = await chain.stream(input);
+
+    // Convert the stream to a ReadableStream
+    const encoder = new TextEncoder();
+    const readableStream = new ReadableStream({
+      async start(controller) {
+        try {
+          for await (const chunk of stream) {
+            if (!chunk.content) continue;
+            
+            let content = '';
+            if (Array.isArray(chunk.content)) {
+              // Handle array of content parts
+              content = chunk.content
+                .map(part => {
+                  if (typeof part === 'string') return part;
+                  if ('text' in part) return part.text;
+                  return '';
+                })
+                .join('');
+            } else {
+              // Handle string content
+              content = String(chunk.content);
+            }
+            
+            if (content) {
+              controller.enqueue(encoder.encode(content));
+            }
+          }
+          controller.close();
+        } catch (error) {
+          console.error('Stream error:', error);
+          controller.error(error);
+        }
+      },
     });
 
-    return NextResponse.json({
-      success: true,
-      content: result,
-    });
+    return new StreamingTextResponse(readableStream);
   } catch (error) {
     console.error("Error in analyze-data API:", error);
     return NextResponse.json(
-      { error: "Failed to analyze data", details: error.message },
+      { error: "Failed to process request", details: error },
       { status: 500 }
     );
   }
