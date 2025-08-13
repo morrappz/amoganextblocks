@@ -36,7 +36,8 @@ type Message = {
   favorite?: boolean;
   table_columns?: string[];
   chart?: ChartData;
-  analysisPrompt?: { text: string; data: any };
+  analysisPrompt?: { data: any };
+  suggestions: boolean;
 };
 
 interface Props {
@@ -50,6 +51,8 @@ interface Props {
   tableColumns?: string[] | undefined;
   onAnalyzeData?: (messageId: string, data: any) => Promise<void>; // New prop
   onDismissAnalysisPrompt?: (messageId: string) => void; // New prop
+  suggestedPrompts: (data: any) => Promise<void>;
+  handleSuggestedPrompts: (msg: string, data: any) => Promise<void>;
 }
 
 export const AssistantMessageBubble = React.memo(function ChatMessageBubble(
@@ -83,6 +86,63 @@ export const AssistantMessageBubble = React.memo(function ChatMessageBubble(
     toast.success("Message Copied Successfully");
   };
 
+  const fallbackResponse = (message: Message) => {
+    return (
+      <div className="flex items-center gap-2.5">
+        <h1>{message.content}</h1>
+        <Button
+          variant={"outline"}
+          onClick={() => props.suggestedPrompts(message.analysisPrompt?.data)}
+          className="rounded-full"
+        >
+          Yes
+        </Button>
+        <Button variant={"outline"} className="rounded-full">
+          Menu
+        </Button>
+      </div>
+    );
+  };
+
+  const suggestedPromptsRender = (message: Message) => {
+    let suggestedPrompts = message.content;
+
+    // If it's a string that looks like an array, parse it
+    if (typeof suggestedPrompts === "string") {
+      try {
+        const parsed = JSON.parse(suggestedPrompts);
+        if (Array.isArray(parsed)) {
+          suggestedPrompts = parsed;
+        }
+      } catch {
+        // leave as-is if not valid JSON
+      }
+    }
+
+    if (!Array.isArray(suggestedPrompts) || suggestedPrompts.length === 0) {
+      return null;
+    }
+    return (
+      <div>
+        <h1 className="mb-2 font-semibold">Here are your suggested prompts:</h1>
+        <div className="flex flex-wrap gap-2.5">
+          {suggestedPrompts.map((item, index) => (
+            <div key={index} className="flex-shrink-0">
+              <Button
+                variant="outline"
+                className="rounded-full whitespace-nowrap"
+                onClick={() =>
+                  props.handleSuggestedPrompts(item, message.analysisPrompt)
+                }
+              >
+                {item}
+              </Button>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
   return (
     <div
       className={cn(
@@ -106,34 +166,16 @@ export const AssistantMessageBubble = React.memo(function ChatMessageBubble(
       >
         <div className="whitespace-pre-wrap flex flex-col">
           <div>
-            {message.role === "assistant" ? assistantResponse : message.content}
+            {message.role === "assistant" &&
+            message.analysisPrompt &&
+            message.suggestions === true
+              ? suggestedPromptsRender(message)
+              : message.role === "assistant" && message.analysisPrompt
+              ? fallbackResponse(message)
+              : message.role === "assistant"
+              ? assistantResponse
+              : message.content}
           </div>
-          {message.role === "assistant" && message.analysisPrompt && (
-            <div className="border-t-2 flex items-center  gap-2.5">
-              <h1>{message.analysisPrompt.text}</h1>
-              <div className="flex gap-2.5 mt-1">
-                <Button
-                  variant={"outline"}
-                  className="rounded-full"
-                  onClick={() =>
-                    props.onAnalyzeData?.(
-                      message.id,
-                      message.analysisPrompt?.data
-                    )
-                  }
-                >
-                  Yes
-                </Button>
-                <Button
-                  variant={"outline"}
-                  className="rounded-full"
-                  onClick={() => props.onDismissAnalysisPrompt?.(message.id)}
-                >
-                  No
-                </Button>
-              </div>
-            </div>
-          )}
 
           {message.role === "assistant" && (
             <div className="flex justify-between items-center">
@@ -162,6 +204,32 @@ export const AssistantMessageBubble = React.memo(function ChatMessageBubble(
               )}
             </div>
           )}
+          {/* {message.role === "assistant" && message.analysisPrompt && (
+            <div className="border-t-2 flex items-center  gap-2.5">
+              <h1>{message.analysisPrompt.text}</h1>
+              <div className="flex gap-2.5 mt-1">
+                <Button
+                  variant={"outline"}
+                  className="rounded-full"
+                  onClick={() =>
+                    props.onAnalyzeData?.(
+                      message.id,
+                      message.analysisPrompt?.data
+                    )
+                  }
+                >
+                  Yes
+                </Button>
+                <Button
+                  variant={"outline"}
+                  className="rounded-full"
+                  onClick={() => props.onDismissAnalysisPrompt?.(message.id)}
+                >
+                  No
+                </Button>
+              </div>
+            </div>
+          )} */}
         </div>
       </div>
     </div>
