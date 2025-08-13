@@ -13,7 +13,8 @@ type Message = {
   bookmark?: boolean;
   favorite?: boolean;
   table_columns?: string[];
-  chart: ChartData;
+  chart?: ChartData;
+  analysisPrompt?: { text: string; data: any };
 };
 
 export const AssistantMessages = React.memo(function ChatMessages(props: {
@@ -71,7 +72,7 @@ export const AssistantMessages = React.memo(function ChatMessages(props: {
         if (m.role === "assistant") {
           const parsed = m.content;
 
-          if (typeof parsed === 'string') {
+          if (typeof parsed === "string") {
             try {
               // Check if the string looks like JSON (starts with [ or {)
               if (parsed.trim().match(/^[\{\[]/)) {

@@ -92,7 +92,7 @@ type Message = {
   bookmark?: boolean;
   favorite?: boolean;
   table_columns?: string[];
-  chart: ChartData;
+  chart?: ChartData;
   analysisPrompt?: { text: string; data: any };
 };
 
@@ -383,6 +383,157 @@ export function AssistantWindow(props: {
     }
   };
 
+  const handleSubmit = async () => {
+    if (!input) return;
+    if (messages.length === 0) {
+      toast.error("Please analyze data first");
+      return;
+    }
+
+    // Get the data from the first message (assuming it contains the analyzed data)
+    const dataToAnalyze = messages[0].content;
+
+    const userMessage: Message = {
+      id: uuidv4(),
+      role: "user" as const,
+      content: input,
+      createdAt: new Date(),
+      isLike: false,
+      bookmark: false,
+      favorite: false,
+      chart: { type: "", title: "", xaxis: "", yaxis: "" },
+      table_columns: [],
+    };
+
+    // Add user message immediately
+    setMessages((prev) => [...prev, userMessage]);
+    setInput("");
+    setIsLoading(true);
+
+    // Save user message to database
+    const userMessageId = userMessage.id;
+    await saveMessage({
+      id: userMessageId,
+      chatId: currentChatId || "",
+      content: input,
+      role: "user",
+      createdAt: new Date(),
+      table_columns: [],
+      chart: { type: "", title: "", xaxis: "", yaxis: "" },
+      bookmark: null,
+      isLike: null,
+      favorite: null,
+      user_id: session?.user?.user_catalog_id,
+      chat_group: "LangStarter",
+    });
+
+    try {
+      const response = await fetch("/api/chat/analyze-data", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          data: dataToAnalyze,
+          messages: messages.map((m) => ({
+            role: m.role,
+            content: m.content,
+          })),
+          userPrompt: input,
+        }),
+      });
+
+      if (!response.ok)
+        throw new Error(`HTTP error! status: ${response.status}`);
+      if (!response.body) throw new Error("Response body is null");
+
+      // Create assistant message for streaming
+      const assistantMessageId = uuidv4();
+      const assistantMessage: Message = {
+        id: assistantMessageId,
+        role: "assistant" as const,
+        content: "",
+        createdAt: new Date(),
+        isLike: false,
+        bookmark: false,
+        favorite: false,
+        chart: { type: "", title: "", xaxis: "", yaxis: "" },
+        table_columns: [],
+      };
+
+      setMessages((prev) => [...prev, assistantMessage]);
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let content = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        content += chunk;
+
+        // Update the last message with new content
+        setMessages((prev) => {
+          const newMessages = [...prev];
+          const lastIndex = newMessages.length - 1;
+          if (lastIndex >= 0) {
+            newMessages[lastIndex] = {
+              ...newMessages[lastIndex],
+              content: content,
+            };
+          }
+          return newMessages;
+        });
+      }
+
+      // Save the final assistant message to database
+      await saveMessage({
+        id: assistantMessageId,
+        chatId: currentChatId || "",
+        content: content,
+        role: "assistant",
+        createdAt: new Date(),
+        table_columns: [],
+        chart: { type: "", title: "", xaxis: "", yaxis: "" },
+        bookmark: null,
+        isLike: null,
+        favorite: null,
+        user_id: session?.user?.user_catalog_id,
+        chat_group: "LangStarter",
+      });
+
+      // Save user activity log
+      await saveUserLogs({
+        status: "Success",
+        description: "Chat message sent and response received",
+        event_type: "Chat Interaction",
+        browser: getCurrentBrowser(),
+        device: getUserOS(),
+        geo_location: await getUserLocation(),
+        operating_system: getUserOS(),
+        user_id: session?.user?.user_catalog_id,
+      });
+    } catch (error) {
+      console.error("Chat error:", error);
+      // Update the last message with error
+      setMessages((prev) => {
+        const newMessages = [...prev];
+        const lastIndex = newMessages.length - 1;
+        if (lastIndex >= 0) {
+          newMessages[lastIndex] = {
+            ...newMessages[lastIndex],
+            content:
+              "Sorry, there was an error processing your request. Please try again.",
+          };
+        }
+        return newMessages;
+      });
+      toast.error("Failed to get response. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleAssistant = async (assistant: Query, apiConnection: string) => {
     try {
       let botResponse;
@@ -404,7 +555,9 @@ export function AssistantWindow(props: {
       const assistantMsg = {
         id: assistantId,
         content: assistant.name,
+        chatId: chatId,
         role: "user",
+        createdAt: new Date(),
         bookmark: null,
         isLike: null,
         favorite: null,
@@ -414,7 +567,8 @@ export function AssistantWindow(props: {
       setMessages((prev) => [...prev, assistantMsg]);
       await saveMessage({
         id: assistantId,
-        chatId: currentChatId,
+        chatId: chatId,
+        createdAt: new Date(),
         content: assistant.name,
         role: "user",
         user_id: session?.user?.user_catalog_id,
@@ -448,6 +602,8 @@ export function AssistantWindow(props: {
         const assistantResponse = {
           id: assistantResponseId,
           content: botResponse,
+          chatId: chatId,
+          createdAt: new Date(),
           role: "assistant",
           table_columns: assistant.table_columns,
           chart: assistant.chart,
@@ -463,9 +619,10 @@ export function AssistantWindow(props: {
         setMessages((prev) => [...prev, assistantResponse]);
         await saveMessage({
           id: assistantResponseId,
-          chatId: currentChatId,
+          chatId: chatId,
           content: botResponse,
           role: "assistant",
+          createdAt: new Date(),
           table_columns: assistant.table_columns,
           chart: assistant.chart,
           bookmark: null,
@@ -488,6 +645,9 @@ export function AssistantWindow(props: {
 
   const handleAnalyzeData = async (messageId: string, dataToAnalyze: any) => {
     setIsLoading(true);
+    let content = "";
+    const messageIdForStream = uuidv4(); // Use proper UUID
+
     try {
       const response = await fetch("/api/chat/analyze-data", {
         method: "POST",
@@ -496,39 +656,85 @@ export function AssistantWindow(props: {
       });
 
       if (!response.ok) {
-        toast.error("Error analyzing data");
-        console.error("Error------");
-        return;
-      }
-      
-      const analysisResult = await response.json();
-      
-      // Convert character codes to string if the content is an object with numeric keys
-      let content = analysisResult.content;
-      if (typeof content === 'object' && content !== null && !Array.isArray(content)) {
-        const charCodes = Object.values(content).map(Number);
-        content = String.fromCharCode(...charCodes);
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      console.log("analysisResult------", content);
+      if (!response.body) {
+        throw new Error("Response body is null");
+      }
 
-      // Add the analysis result as a new assistant message
-      const analysisMessage = {
-        id: Date.now().toString(),
-        role: "assistant" as const,
-        content: content || "Analysis completed",
+      // Create a new assistant message for the streamed response
+      const analysisMessage: Message = {
+        id: messageIdForStream,
+        role: "assistant",
+        content: "",
         createdAt: new Date(),
-        analysisPrompt: undefined,
-        chart: {},
-        text: content || "Analysis completed",
-        data: {},
+        isLike: false,
+        bookmark: false,
+        favorite: false,
       };
 
+      // Add the empty message to the UI immediately
       setMessages((prevMessages) => [...prevMessages, analysisMessage]);
-      toast.success("Data analyzed successfully!");
+
+      // Process the streaming response
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder("utf-8");
+      let done = false;
+
+      while (!done) {
+        const { value, done: doneReading } = await reader.read();
+        done = doneReading;
+
+        if (value) {
+          // Decode the chunk and append to content
+          const chunk = decoder.decode(value, { stream: true });
+          content += chunk;
+
+          // Update the message with the new content
+          setMessages((prevMessages) =>
+            prevMessages.map((msg) =>
+              msg.id === messageIdForStream
+                ? { ...msg, content, text: content }
+                : msg
+            )
+          );
+        }
+      }
+
+      // Save the complete message to the database
+      await saveMessage({
+        id: messageIdForStream,
+        chatId: currentChatId,
+        content: content,
+        role: "assistant",
+        createdAt: new Date(),
+        table_columns: [],
+        chart: {},
+        bookmark: null,
+        isLike: null,
+        favorite: null,
+        user_id: session?.user?.user_catalog_id,
+        chat_group: "LangStarter",
+      });
+
+      toast.success("Analysis completed!");
     } catch (error) {
       console.error("Analysis failed:", error);
-      toast.error("Failed to analyze data.");
+      toast.error("Failed to analyze data. Please try again.");
+
+      // Update the message with the error
+      setMessages((prevMessages) =>
+        prevMessages.map((msg) =>
+          msg.id === messageIdForStream
+            ? {
+                ...msg,
+                content: "Sorry, there was an error processing your request.",
+                text: "Sorry, there was an error processing your request.",
+              }
+            : msg
+        )
+      );
     } finally {
       setIsLoading(false);
     }
@@ -631,7 +837,7 @@ export function AssistantWindow(props: {
           <AssistantInput
             value={input}
             setValue={setInput}
-            onSubmit={handleAssistant}
+            onSubmit={handleSubmit}
             loading={isLoading}
             placeholder={props.placeholder}
           >
