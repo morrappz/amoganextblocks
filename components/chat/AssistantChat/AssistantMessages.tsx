@@ -16,6 +16,7 @@ type Message = {
   chart?: ChartData;
   analysisPrompt?: { data: any };
   suggestions: boolean;
+  initialMsg: boolean;
 };
 
 export const AssistantMessages = React.memo(function ChatMessages(props: {
@@ -44,7 +45,7 @@ export const AssistantMessages = React.memo(function ChatMessages(props: {
 
   return (
     <div className="flex flex-col mt-5  -z-50  max-w-[768px] mx-auto pb-12 w-full">
-      <div>
+      {/* <div>
         {props.jsonData.map((data) => (
           <div className="flex gap-2.5 flex-wrap" key={data.form_id}>
             {data.content[0].queries.map((assistant) => (
@@ -64,7 +65,7 @@ export const AssistantMessages = React.memo(function ChatMessages(props: {
             ))}
           </div>
         ))}
-      </div>
+      </div> */}
       {props.messages.map((m, i) => {
         const sourceKey = (props.messages.length - 1 - i).toString();
 
@@ -105,6 +106,8 @@ export const AssistantMessages = React.memo(function ChatMessages(props: {
             onDismissAnalysisPrompt={props.onDismissAnalysisPrompt}
             suggestedPrompts={props.suggestedPrompts}
             handleSuggestedPrompts={props.handleSuggestedPrompts}
+            handleAssistant={props.handleAssistant}
+            jsonData={props.jsonData}
             // onBookmarkUpdate={handleBookmarkUpdate}
             // onFavoriteUpdate={handleFavoriteUpdate}
           />
