@@ -95,6 +95,7 @@ type Message = {
   chart?: ChartData;
   analysisPrompt?: { data: any };
   suggestions: boolean;
+  initialMsg?: boolean;
 };
 
 export function ScrollToBottom(props: { className?: string }) {
@@ -351,6 +352,20 @@ export function AssistantWindow(props: {
     loadMessages();
   }, [props.chatId, session?.user?.user_catalog_id]);
 
+  useEffect(() => {
+    if (jsonData.length > 0) {
+      const initialMessage: Message = {
+        id: uuidv4(),
+        role: "assistant",
+        content: "How can I help you today?",
+        createdAt: new Date(),
+        suggestions: false,
+        initialMsg: true,
+      };
+      setMessages([initialMessage]);
+    }
+  }, [jsonData]);
+
   const createNewChatAndRedirect = async (userMessage: string) => {
     try {
       const newChatId = uuidv4();
@@ -460,6 +475,7 @@ export function AssistantWindow(props: {
         favorite: false,
         chart: { type: "", title: "", xaxis: "", yaxis: "" },
         table_columns: [],
+        suggestions: true,
       };
 
       setMessages((prev) => [...prev, assistantMessage]);

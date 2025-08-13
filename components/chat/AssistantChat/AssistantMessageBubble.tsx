@@ -10,7 +10,7 @@ import {
   Heart,
   Star,
 } from "lucide-react";
-import React from "react";
+import React, { useState } from "react";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -22,7 +22,7 @@ import RenderTable from "../RenderTable";
 import AnalyticCardFileApi from "../AnalyticCardFileApi/AnalyticCardFileApi";
 import ShareFileMenu from "../AnalyticCardFileApi/ShareMenu";
 import AnalyticCard from "./AnalyticCard";
-import { ChartData } from "../types/types";
+import { AssistantData, ChartData, Query } from "../types/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -38,6 +38,7 @@ type Message = {
   chart?: ChartData;
   analysisPrompt?: { data: any };
   suggestions: boolean;
+  initialMsg: boolean;
 };
 
 interface Props {
@@ -53,6 +54,8 @@ interface Props {
   onDismissAnalysisPrompt?: (messageId: string) => void; // New prop
   suggestedPrompts: (data: any) => Promise<void>;
   handleSuggestedPrompts: (msg: string, data: any) => Promise<void>;
+  handleAssistant: (assistant: Query, apiConnection: string) => void;
+  jsonData: AssistantData[];
 }
 
 export const AssistantMessageBubble = React.memo(function ChatMessageBubble(
@@ -60,6 +63,7 @@ export const AssistantMessageBubble = React.memo(function ChatMessageBubble(
 ) {
   const { message, onUpdateMessage, parsedMessage } = props;
   const { data: session } = useSession();
+  const [displayMenu, setDisplayMenu] = useState(false);
 
   const assistantResponse = Array.isArray(parsedMessage) ? (
     <AnalyticCard data={parsedMessage} tableColumns={props.tableColumns} />
@@ -97,7 +101,11 @@ export const AssistantMessageBubble = React.memo(function ChatMessageBubble(
         >
           Yes
         </Button>
-        <Button variant={"outline"} className="rounded-full">
+        <Button
+          onClick={() => setDisplayMenu(true)}
+          variant={"outline"}
+          className="rounded-full"
+        >
           Menu
         </Button>
       </div>
@@ -143,6 +151,36 @@ export const AssistantMessageBubble = React.memo(function ChatMessageBubble(
       </div>
     );
   };
+
+  // Add this new function to render assistant buttons
+  const renderAssistantButtons = () => {
+    return (
+      <div className="p-2">
+        <h1>{message.content}</h1>
+        <div className="flex flex-wrap gap-2">
+          {props.jsonData.map((data) =>
+            data.content[0].queries.map((assistant) => (
+              <Button
+                key={assistant.id}
+                variant="outline"
+                size="sm"
+                className="text-xs rounded-full"
+                onClick={() => {
+                  props.handleAssistant(
+                    assistant,
+                    props.jsonData[0].api_connection_json
+                  );
+                }}
+              >
+                {assistant.name}
+              </Button>
+            ))
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div
       className={cn(
@@ -167,8 +205,11 @@ export const AssistantMessageBubble = React.memo(function ChatMessageBubble(
         <div className="whitespace-pre-wrap flex flex-col">
           <div>
             {message.role === "assistant" &&
-            message.analysisPrompt &&
-            message.suggestions === true
+            (message.initialMsg === true || displayMenu)
+              ? renderAssistantButtons()
+              : message.role === "assistant" &&
+                message.analysisPrompt &&
+                message.suggestions === true
               ? suggestedPromptsRender(message)
               : message.role === "assistant" && message.analysisPrompt
               ? fallbackResponse(message)
