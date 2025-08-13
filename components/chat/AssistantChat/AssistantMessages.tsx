@@ -14,7 +14,8 @@ type Message = {
   favorite?: boolean;
   table_columns?: string[];
   chart?: ChartData;
-  analysisPrompt?: { text: string; data: any };
+  analysisPrompt?: { data: any };
+  suggestions: boolean;
 };
 
 export const AssistantMessages = React.memo(function ChatMessages(props: {
@@ -28,6 +29,8 @@ export const AssistantMessages = React.memo(function ChatMessages(props: {
   handleAssistant: (assistant: Query, apiConnection: string) => void;
   onAnalyzeData: (messageId: string, data: any) => Promise<void>; // New prop
   onDismissAnalysisPrompt: (messageId: string) => void; // New prop
+  suggestedPrompts: (data: any) => Promise<void>;
+  handleSuggestedPrompts: (msg: string, data: any) => Promise<void>;
 }) {
   const { setChartData } = useChatStore();
 
@@ -100,7 +103,8 @@ export const AssistantMessages = React.memo(function ChatMessages(props: {
             tableColumns={tableColumns}
             onAnalyzeData={props.onAnalyzeData}
             onDismissAnalysisPrompt={props.onDismissAnalysisPrompt}
-
+            suggestedPrompts={props.suggestedPrompts}
+            handleSuggestedPrompts={props.handleSuggestedPrompts}
             // onBookmarkUpdate={handleBookmarkUpdate}
             // onFavoriteUpdate={handleFavoriteUpdate}
           />

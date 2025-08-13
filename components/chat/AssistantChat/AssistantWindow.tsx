@@ -93,7 +93,8 @@ type Message = {
   favorite?: boolean;
   table_columns?: string[];
   chart?: ChartData;
-  analysisPrompt?: { text: string; data: any };
+  analysisPrompt?: { data: any };
+  suggestions: boolean;
 };
 
 export function ScrollToBottom(props: { className?: string }) {
@@ -324,6 +325,8 @@ export function AssistantWindow(props: {
                 favorite: msg.favorite,
                 table_columns: msg.table_columns,
                 chart: msg.chart,
+                analysisPrompt: msg.analysisPrompt,
+                suggestions: msg.suggestions,
               })
             );
             setMessages(formattedMessages);
@@ -539,6 +542,7 @@ export function AssistantWindow(props: {
       let botResponse;
       const assistantId = uuidv4();
       const assistantResponseId = uuidv4();
+      const fallbackMsgId = uuidv4();
       let chatId = currentChatId;
 
       // if there is no chat Id, create new chat and redirect
@@ -599,6 +603,7 @@ export function AssistantWindow(props: {
 
         botResponse = Array.isArray(result) ? JSON.stringify(result) : value;
 
+        // fallback message after each response to generate suggestions
         const assistantResponse = {
           id: assistantResponseId,
           content: botResponse,
@@ -611,12 +616,26 @@ export function AssistantWindow(props: {
           isLike: null,
           favorite: null,
           user_id: session?.user?.user_catalog_id,
+        };
+        setMessages((prev) => [...prev, assistantResponse]);
+        const fallbackMsg = {
+          id: fallbackMsgId,
+          content: "Do you want any suggested prompts?",
+          chatId: chatId,
+          createdAt: new Date(),
+          role: "assistant",
+          table_columns: assistant.table_columns,
+          chart: assistant.chart,
+          bookmark: null,
+          isLike: null,
+          favorite: null,
+          user_id: session?.user?.user_catalog_id,
           analysisPrompt: {
-            text: "Do you want to analyze the data?",
             data: botResponse,
           },
         };
-        setMessages((prev) => [...prev, assistantResponse]);
+        setMessages((prev) => [...prev, fallbackMsg]);
+
         await saveMessage({
           id: assistantResponseId,
           chatId: chatId,
@@ -630,6 +649,22 @@ export function AssistantWindow(props: {
           favorite: null,
           user_id: session?.user?.user_catalog_id,
           chat_group: "LangStarter",
+        });
+        await saveMessage({
+          id: fallbackMsgId,
+          content: "Do you want any suggested prompts?",
+          chatId: chatId,
+          createdAt: new Date(),
+          role: "assistant",
+          table_columns: assistant.table_columns,
+          chart: assistant.chart,
+          bookmark: null,
+          isLike: null,
+          favorite: null,
+          user_id: session?.user?.user_catalog_id,
+          analysisPrompt: {
+            data: botResponse,
+          },
         });
 
         setIsLoading(false);
@@ -671,6 +706,7 @@ export function AssistantWindow(props: {
         createdAt: new Date(),
         isLike: false,
         bookmark: false,
+        suggestions: true,
         favorite: false,
       };
 
@@ -740,12 +776,173 @@ export function AssistantWindow(props: {
     }
   };
 
+  const handleSuggestedPrompts = async (msg: string, data: any) => {
+    setIsLoading(true);
+    let content = "";
+    const messageIdForStream = uuidv4(); // Use proper UUID
+
+    const promptSelected = {
+      id: uuidv4(),
+      chatId: currentChatId,
+      user_id: session?.user?.user_catalog_id,
+      role: "user",
+      content: msg,
+      createdAt: new Date(),
+      suggestions: true,
+    };
+    setMessages((prev) => [...prev, promptSelected]);
+    await saveMessage({
+      id: uuidv4(),
+      chatId: currentChatId,
+      user_id: session?.user?.user_catalog_id,
+      role: "user",
+      content: msg,
+      createdAt: new Date(),
+      suggestions: true,
+    });
+
+    try {
+      const response = await fetch("/api/chat/analyze-data", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ data: data, msg: msg }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      if (!response.body) {
+        throw new Error("Response body is null");
+      }
+
+      // Create a new assistant message for the streamed response
+      const analysisMessage: Message = {
+        id: messageIdForStream,
+        role: "assistant",
+        content: "",
+        createdAt: new Date(),
+        isLike: false,
+        bookmark: false,
+        favorite: false,
+        suggestions: true,
+      };
+
+      // Add the empty message to the UI immediately
+      setMessages((prevMessages) => [...prevMessages, analysisMessage]);
+
+      // Process the streaming response
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder("utf-8");
+      let done = false;
+
+      while (!done) {
+        const { value, done: doneReading } = await reader.read();
+        done = doneReading;
+
+        if (value) {
+          // Decode the chunk and append to content
+          const chunk = decoder.decode(value, { stream: true });
+          content += chunk;
+
+          // Update the message with the new content
+          setMessages((prevMessages) =>
+            prevMessages.map((msg) =>
+              msg.id === messageIdForStream
+                ? { ...msg, content, text: content }
+                : msg
+            )
+          );
+        }
+      }
+
+      // Save the complete message to the database
+      await saveMessage({
+        id: messageIdForStream,
+        chatId: currentChatId,
+        content: content,
+        role: "assistant",
+        createdAt: new Date(),
+        table_columns: [],
+        chart: {},
+        bookmark: null,
+        isLike: null,
+        favorite: null,
+        user_id: session?.user?.user_catalog_id,
+        chat_group: "LangStarter",
+        suggestions: true,
+      });
+    } catch (error) {
+      console.error("Analysis failed:", error);
+      toast.error("Failed to analyze data. Please try again.");
+
+      // Update the message with the error
+      setMessages((prevMessages) =>
+        prevMessages.map((msg) =>
+          msg.id === messageIdForStream
+            ? {
+                ...msg,
+                content: "Sorry, there was an error processing your request.",
+                text: "Sorry, there was an error processing your request.",
+              }
+            : msg
+        )
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleDismissAnalysisPrompt = (messageId: string) => {
     setMessages((prevMessages) =>
       prevMessages.map((msg) =>
         msg.id === messageId ? { ...msg, analysisPrompt: undefined } : msg
       )
     );
+  };
+
+  const getSuggestedPrompts = async (data: any) => {
+    setIsLoading(true);
+    const suggestedPromptId = uuidv4();
+    try {
+      const response = await fetch("/api/chat/suggested-prompts", {
+        method: "POST",
+        body: JSON.stringify({ data: data }),
+      });
+      if (!response.ok) {
+        toast.error(`HTTP error! status: ${response.status}`);
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const result = await response.json();
+      console.log("result-----", result);
+
+      const suggestedPrompts = {
+        id: suggestedPromptId,
+        chatId: currentChatId,
+        content: result.suggestions,
+        suggestions: true,
+        role: "assistant",
+        analysisPrompt: {
+          data: data,
+        },
+      };
+      setMessages((prev) => [...prev, suggestedPrompts]);
+      await saveMessage({
+        id: suggestedPromptId,
+        chatId: currentChatId,
+        content: result.suggestions,
+        suggestions: true,
+        role: "assistant",
+        createdAt: new Date(),
+        user_id: session?.user?.user_catalog_id,
+        analysisPrompt: {
+          data: data,
+        },
+      });
+    } catch (error) {
+      console.error("Analysis failed:", error);
+      toast.error("Failed to generate suggestions. Please try again.");
+    }
   };
 
   return (
@@ -827,6 +1024,8 @@ export function AssistantWindow(props: {
               handleAssistant={handleAssistant}
               onAnalyzeData={handleAnalyzeData}
               onDismissAnalysisPrompt={handleDismissAnalysisPrompt}
+              suggestedPrompts={getSuggestedPrompts}
+              handleSuggestedPrompts={handleSuggestedPrompts}
 
               // setBookmarks={setBookmarks}
               // setFavorites={setFavorites}
