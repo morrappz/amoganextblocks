@@ -114,31 +114,61 @@ jest.mock("./AssistantInput", () => ({
 }));
 jest.mock("../MenuItems/Assistants", () => ({
   __esModule: true,
-  default: Object.assign(() => <div data-testid="assistants" />, { displayName: "AssistantsDefault" }),
-  Assistants: Object.assign(() => <div data-testid="assistants" />, { displayName: "Assistants" }),
+  default: Object.assign(() => <div data-testid="assistants" />, {
+    displayName: "AssistantsDefault",
+  }),
+  Assistants: Object.assign(() => <div data-testid="assistants" />, {
+    displayName: "Assistants",
+  }),
 }));
 jest.mock("../UploadDocumentsForm", () => ({
-  UploadDocumentsForm: Object.assign(() => <div data-testid="upload-documents-form" />, { displayName: "UploadDocumentsForm" }),
+  UploadDocumentsForm: Object.assign(
+    () => <div data-testid="upload-documents-form" />,
+    { displayName: "UploadDocumentsForm" }
+  ),
 }));
 jest.mock("../MenuItems/Favorites", () => ({
   __esModule: true,
-  default: Object.assign((props: any) => <div data-testid="favorites" {...props} />, { displayName: "FavoritesDefault" }),
-  Favorites: Object.assign((props: any) => <div data-testid="favorites" {...props} />, { displayName: "Favorites" }),
+  default: Object.assign(
+    (props: any) => <div data-testid="favorites" {...props} />,
+    { displayName: "FavoritesDefault" }
+  ),
+  Favorites: Object.assign(
+    (props: any) => <div data-testid="favorites" {...props} />,
+    { displayName: "Favorites" }
+  ),
 }));
 jest.mock("../MenuItems/History", () => ({
   __esModule: true,
-  default: Object.assign((props: any) => <div data-testid="history" {...props} />, { displayName: "HistoryDefault" }),
-  History: Object.assign((props: any) => <div data-testid="history" {...props} />, { displayName: "History" }),
+  default: Object.assign(
+    (props: any) => <div data-testid="history" {...props} />,
+    { displayName: "HistoryDefault" }
+  ),
+  History: Object.assign(
+    (props: any) => <div data-testid="history" {...props} />,
+    { displayName: "History" }
+  ),
 }));
 jest.mock("../MenuItems/Bookmark", () => ({
   __esModule: true,
-  default: Object.assign((props: any) => <div data-testid="bookmark" {...props} />, { displayName: "BookmarkDefault" }),
-  BookMark: Object.assign((props: any) => <div data-testid="bookmark" {...props} />, { displayName: "BookMark" }),
+  default: Object.assign(
+    (props: any) => <div data-testid="bookmark" {...props} />,
+    { displayName: "BookmarkDefault" }
+  ),
+  BookMark: Object.assign(
+    (props: any) => <div data-testid="bookmark" {...props} />,
+    { displayName: "BookMark" }
+  ),
 }));
 jest.mock("../MenuItems/SuggestedPrompts", () => ({
   __esModule: true,
-  default: Object.assign(() => <div data-testid="suggested-prompts" />, { displayName: "SuggestedPromptsDefault" }),
-  SuggestedPrompts: Object.assign(() => <div data-testid="suggested-prompts" />, { displayName: "SuggestedPrompts" }),
+  default: Object.assign(() => <div data-testid="suggested-prompts" />, {
+    displayName: "SuggestedPromptsDefault",
+  }),
+  SuggestedPrompts: Object.assign(
+    () => <div data-testid="suggested-prompts" />,
+    { displayName: "SuggestedPrompts" }
+  ),
 }));
 
 // Helper to flush promises
@@ -268,6 +298,13 @@ it("handleSubmit: success flow with streaming response", async () => {
   global.fetch = jest.fn(() =>
     Promise.resolve({
       ok: true,
+      status: 200,
+      statusText: "OK",
+      headers: new Headers(),
+      redirected: false,
+      type: "basic",
+      url: "",
+      clone: () => ({} as Response),
       body: {
         getReader: () => {
           let called = false;
@@ -285,7 +322,13 @@ it("handleSubmit: success flow with streaming response", async () => {
           };
         },
       },
-    }) as any;
+      arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
+      blob: () => Promise.resolve(new Blob()),
+      formData: () => Promise.resolve(new FormData()),
+      json: () => Promise.resolve({}),
+      text: () => Promise.resolve("response"),
+    } as Response)
+  );
   render(
     <AssistantWindow
       endpoint="/api"
@@ -345,27 +388,29 @@ it("calls saveUserLogs on mount", async () => {
 
 it("handleAnalyzeData: streaming and error", async () => {
   // Success streaming
-  global.fetch = jest.fn(() =>
-    Promise.resolve({
-      ok: true,
-      body: {
-        getReader: () => {
-          let called = false;
-          return {
-            read: () =>
-              Promise.resolve(
-                called
-                  ? { done: true }
-                  : ((called = true),
-                    {
-                      value: new TextEncoder().encode("analysis"),
-                      done: false,
-                    })
-              ),
-          };
+  global.fetch = jest.fn(
+    () =>
+      Promise.resolve({
+        ok: true,
+        body: {
+          getReader: () => {
+            let called = false;
+            return {
+              read: () =>
+                Promise.resolve(
+                  called
+                    ? { done: true }
+                    : ((called = true),
+                      {
+                        value: new TextEncoder().encode("analysis"),
+                        done: false,
+                      })
+                ),
+            };
+          },
         },
-      },
-    }) as any;
+      }) as any
+  );
   render(
     <AssistantWindow
       endpoint="/api"
