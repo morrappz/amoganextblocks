@@ -2,6 +2,8 @@ import React from "react";
 import { render, screen } from "@testing-library/react";
 import { ChatMessages } from "./ChatMessages";
 
+import { ChatMessageBubble } from "./ChatMessageBubble";
+
 // components/chat/ChatMessages.test.tsx
 
 // Mocks
@@ -61,7 +63,7 @@ const baseMessages = [
     content: "System message",
     createdAt: new Date(),
   },
-];
+] as const;
 
 const assistantJsonMsg = {
   id: "4",
@@ -74,14 +76,14 @@ const assistantJsonMsg = {
     table: { rows: [1, 2] },
   }),
   createdAt: new Date(),
-};
+} as const;
 
 const assistantInvalidJsonMsg = {
   id: "5",
   role: "assistant",
   content: "{invalid json",
   createdAt: new Date(),
-};
+} as const;
 
 const sourcesForMessages = {
   "0": { src: "A" },
@@ -169,24 +171,22 @@ describe("ChatMessages", () => {
 
   it("uses correct sourceKey for each message", () => {
     const spyBubble = jest.fn();
-    jest.mocked(require("./ChatMessageBubble")).ChatMessageBubble = (
-      props: any
-    ) => {
-      spyBubble(props.sources);
-      return <div data-testid="bubble" />;
-    };
+    // Override the mock implementation for this test only
+    (ChatMessageBubble as any).mockImplementation = Object.assign(
+      (props: any) => {
+        spyBubble(props.sources);
+        return <div data-testid="bubble" />;
+      },
+      { displayName: "ChatMessageBubble" }
+    );
     render(
       <ChatMessages
-        messages={baseMessages}
+        messages={[...baseMessages]}
         emptyStateComponent={<div />}
         sourcesForMessages={sourcesForMessages}
         onUpdateMessage={jest.fn()}
       />
     );
-    // sourceKey for first message (i=0): messages.length-1-0 = 2
-    // sourceKey for second message (i=1): messages.length-1-1 = 1
-    // sourceKey for third message (i=2): messages.length-1-2 = 0
-    // Only user/assistant bubbles call spyBubble
     expect(spyBubble).toHaveBeenCalledWith(sourcesForMessages["2"]);
     expect(spyBubble).toHaveBeenCalledWith(sourcesForMessages["1"]);
   });
