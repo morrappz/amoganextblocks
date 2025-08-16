@@ -10,7 +10,8 @@
     "dev-turbo": "next dev --turbopack",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@ai-sdk/fireworks": "^0.1.8",
@@ -159,7 +160,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
-    "@playwright/test": "^1.54.1",
+    "@playwright/test": "^1.54.2",
     "@testing-library/jest-dom": "^6.7.0",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.6.1",
