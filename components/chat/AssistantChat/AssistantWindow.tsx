@@ -62,9 +62,9 @@ import getUserOS from "@/utils/getCurrentOS";
 import getUserLocation from "@/utils/geoLocation";
 import { AssistantInput } from "./AssistantInput";
 import { ChatLayout } from "../ChatLayout";
-import History from "../MenuItems/History";
-import BookMark from "../MenuItems/Bookmark";
-import Favorites from "../MenuItems/Favorites";
+import History from "./MenuItems/History";
+import BookMark from "./MenuItems/Bookmark";
+import Favorites from "./MenuItems/Favorites";
 import { ChatMessages } from "../ChatMessages";
 import SuggestedPrompts from "../MenuItems/SuggestedPrompts";
 import Assistants from "../MenuItems/Assistants";
@@ -187,7 +187,7 @@ export function AssistantWindow(props: {
 
     setHistoryLoading(true);
     try {
-      const response = await getChatHistory("LangStarter");
+      const response = await getChatHistory("LangStarter Assistant");
       setHistory(response);
     } catch (error) {
       console.error("Error fetching history:", error);
@@ -203,7 +203,7 @@ export function AssistantWindow(props: {
     if (bookMarkLoading) return;
     setBookMarkLoading(true);
     try {
-      const response = await getChatBookMarks("LangStarter");
+      const response = await getChatBookMarks("LangStarter Assistant");
       setBookMarks(response);
     } catch (error) {
       console.error("Error fetching Bookmarks:", error);
@@ -218,7 +218,8 @@ export function AssistantWindow(props: {
     if (favoriteLoading) return; // Fixed: was checking bookMarkLoading instead of favoriteLoading
     setFavoriteLoading(true);
     try {
-      const response = await getChatFavorites("LangStarter");
+      const response = await getChatFavorites("LangStarter Assistant");
+
       setFavorites(response);
     } catch (error) {
       console.error("Error fetching Favorites:", error);
@@ -381,10 +382,11 @@ export function AssistantWindow(props: {
       await createChat({
         id: newChatId,
         title: userMessage.slice(0, 100), // Limit title length
-        chat_group: "LangStarter",
+        chat_group: "LangStarter Assistant",
         status: "active",
         user_id: session?.user?.user_catalog_id,
         createdAt: new Date().toISOString(),
+        assistantId: props.assistantId,
       });
 
       setCurrentChatId(newChatId);
@@ -450,7 +452,8 @@ export function AssistantWindow(props: {
       isLike: null,
       favorite: null,
       user_id: session?.user?.user_catalog_id,
-      chat_group: "LangStarter",
+      chat_group: "LangStarter Assistant",
+      assistantId: props.assistantId,
     });
 
     try {
@@ -526,7 +529,8 @@ export function AssistantWindow(props: {
         isLike: null,
         favorite: null,
         user_id: session?.user?.user_catalog_id,
-        chat_group: "LangStarter",
+        chat_group: "LangStarter Assistant",
+        assistantId: props.assistantId,
       });
 
       // Save user activity log
@@ -563,6 +567,7 @@ export function AssistantWindow(props: {
 
   const handleAssistant = async (assistant: Query, apiConnection: string) => {
     try {
+      setIsLoading(true);
       let botResponse;
       const assistantId = uuidv4();
       const assistantResponseId = uuidv4();
@@ -600,7 +605,8 @@ export function AssistantWindow(props: {
         content: assistant.name,
         role: "user",
         user_id: session?.user?.user_catalog_id,
-        chat_group: "LangStarter",
+        chat_group: "LangStarter Assistant",
+        assistantId: props.assistantId,
       });
 
       try {
@@ -672,7 +678,8 @@ export function AssistantWindow(props: {
           isLike: null,
           favorite: null,
           user_id: session?.user?.user_catalog_id,
-          chat_group: "LangStarter",
+          chat_group: "LangStarter Assistant",
+          assistantId: props.assistantId,
         });
         await saveMessage({
           id: fallbackMsgId,
@@ -686,6 +693,8 @@ export function AssistantWindow(props: {
           isLike: null,
           favorite: null,
           user_id: session?.user?.user_catalog_id,
+          assistantId: props.assistantId,
+
           analysisPrompt: {
             data: botResponse,
           },
@@ -775,7 +784,8 @@ export function AssistantWindow(props: {
         isLike: null,
         favorite: null,
         user_id: session?.user?.user_catalog_id,
-        chat_group: "LangStarter",
+        chat_group: "LangStarter Assistant",
+        assistantId: props.assistantId,
       });
 
       toast.success("Analysis completed!");
@@ -823,6 +833,7 @@ export function AssistantWindow(props: {
       content: msg,
       createdAt: new Date(),
       suggestions: true,
+      assistantId: props.assistantId,
     });
 
     try {
@@ -893,8 +904,9 @@ export function AssistantWindow(props: {
         isLike: null,
         favorite: null,
         user_id: session?.user?.user_catalog_id,
-        chat_group: "LangStarter",
+        chat_group: "LangStarter Assistant",
         suggestions: true,
+        assistantId: props.assistantId,
       });
     } catch (error) {
       console.error("Analysis failed:", error);
@@ -959,6 +971,8 @@ export function AssistantWindow(props: {
         role: "assistant",
         createdAt: new Date(),
         user_id: session?.user?.user_catalog_id,
+        assistantId: props.assistantId,
+
         analysisPrompt: {
           data: data,
         },

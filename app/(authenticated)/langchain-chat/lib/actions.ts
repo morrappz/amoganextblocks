@@ -9,7 +9,7 @@ export async function getChatHistory(chatGroup: string) {
   try {
     const { data, error } = await postgrest
       .from("chat")
-      .select("id,title,createdAt")
+      .select("id,title,createdAt,assistantId")
       .eq("user_id", userId)
       .eq("chat_group", chatGroup)
       .eq("status", "active")
@@ -29,13 +29,13 @@ export async function getChatBookMarks(chatGroup: string) {
     const { data, error } = await postgrest
       .asAdmin()
       .from("message")
-      .select("id,chatId,content,createdAt")
+      .select("id,chatId,content,createdAt,assistantId")
       .eq("user_id", userId)
       .eq("chat_group", chatGroup)
       .eq("bookmark", true)
-      .eq("status", "active")
       .order("createdAt", { ascending: true });
     if (error) throw error;
+    console.log("book------------", data);
 
     return data;
   } catch (error) {
@@ -50,11 +50,11 @@ export async function getChatFavorites(chatGroup: string) {
     const { data, error } = await postgrest
       .asAdmin()
       .from("message")
-      .select("id, chatId ,content,createdAt")
+      .select("id, chatId ,content,createdAt, assistantId")
       .eq("user_id", userId)
       .eq("chat_group", chatGroup)
       .eq("favorite", true)
-      .eq("status", "active")
+
       .order("createdAt", { ascending: true });
 
     if (error) throw error;
