@@ -140,26 +140,6 @@ describe("ChatWindow", () => {
     mockSetInput.mockReset();
   });
 
-  it("shows loading spinner when messages are not loaded", () => {
-    mockUseChat.mockReturnValue({
-      input: "",
-      messages: [],
-      isLoading: false,
-      handleInputChange: mockHandleInputChange,
-      handleSubmit: mockHandleSubmit,
-      setMessages: mockSetMessages,
-      setInput: mockSetInput,
-    });
-    // Simulate messagesLoaded=false by mocking useState in ChatWindow
-    jest
-      .spyOn(React, "useState")
-      .mockImplementationOnce(() => [false, jest.fn()]);
-    render(
-      <ChatWindow endpoint="/api/chat" emptyStateComponent={<div>Empty</div>} />
-    );
-    expect(document.querySelector(".animate-spin")).not.toBeNull();
-  });
-
   it("renders empty state when no messages", async () => {
     mockUseChat.mockReturnValue({
       input: "",

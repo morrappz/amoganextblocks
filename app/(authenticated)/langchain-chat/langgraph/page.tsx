@@ -1,6 +1,8 @@
 "use client";
 
-import { ChatInput, ChatLayout } from "@/components/chat/ChatWindow";
+// import { ChatInput, ChatLayout } from "@/components/chat/ChatWindow";
+import { ChatInput } from "@/components/chat/ChatInput";
+import { ChatLayout } from "@/components/chat/ChatLayout";
 import { GuideInfoBox } from "@/components/chat/GuideInfoBox";
 import { ReactNode, Suspense, useState } from "react";
 import { toast } from "sonner";

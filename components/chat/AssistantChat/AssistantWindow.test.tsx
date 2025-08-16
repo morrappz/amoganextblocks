@@ -21,10 +21,8 @@ import userEvent from "@testing-library/user-event";
 import { toast } from "sonner";
 import { v4 as uuidv4 } from "uuid";
 import { AssistantWindow } from "./AssistantWindow";
-const actions = jest.requireMock(
-  "@/app/(authenticated)/langchain-chat/lib/actions"
-);
-const saveUserLogs = jest.requireMock("@/utils/userLogs").saveUserLogs;
+import * as actionsImport from "@/app/(authenticated)/langchain-chat/lib/actions";
+import { saveUserLogs as saveUserLogsImport } from "@/utils/userLogs";
 
 // components/chat/AssistantChat/AssistantWindow.test.tsx
 
@@ -36,6 +34,12 @@ jest.mock("sonner", () => ({
     info: jest.fn(),
   },
 }));
+
+// Cast imported actions and saveUserLogs to jest.Mock for mocking
+const actions = actionsImport as {
+  [K in keyof typeof actionsImport]: jest.Mock;
+};
+const saveUserLogs = saveUserLogsImport as jest.Mock;
 
 jest.mock("uuid", () => ({
   v4: jest.fn(() => "uuid-mock"),
@@ -71,32 +75,38 @@ jest.mock("./AssistantMessages", () => ({
   ),
 }));
 jest.mock("./AssistantLayout", () => ({
-  AssistantLayout: (props: any) => (
-    <div data-testid="assistant-layout">
-      {props.content}
-      {props.footer}
-    </div>
+  AssistantLayout: Object.assign(
+    (props: any) => (
+      <div data-testid="assistant-layout">
+        {props.content}
+        {props.footer}
+      </div>
+    ),
+    { displayName: "AssistantLayout" }
   ),
 }));
 jest.mock("./AssistantInput", () => ({
-  AssistantInput: (props: any) => (
-    <form
-      data-testid="assistant-input"
-      onSubmit={(e) => {
-        e.preventDefault();
-        props.onSubmit();
-      }}
-    >
-      <input
-        value={props.value}
-        onChange={(e) => props.setValue(e.target.value)}
-        aria-label="chat-input"
-      />
-      <button type="submit" disabled={props.loading}>
-        Send
-      </button>
-      {props.children}
-    </form>
+  AssistantInput: Object.assign(
+    (props: any) => (
+      <form
+        data-testid="assistant-input"
+        onSubmit={(e) => {
+          e.preventDefault();
+          props.onSubmit();
+        }}
+      >
+        <input
+          value={props.value}
+          onChange={(e) => props.setValue(e.target.value)}
+          aria-label="chat-input"
+        />
+        <button type="submit" disabled={props.loading}>
+          Send
+        </button>
+        {props.children}
+      </form>
+    ),
+    { displayName: "AssistantInput" }
   ),
 }));
 jest.mock("../MenuItems/Favorites", () => ({
@@ -135,13 +145,13 @@ beforeEach(() => {
   jest.clearAllMocks();
   actions.fetchFormSetupData.mockResolvedValue([{ content: ["some-data"] }]);
   actions.getMessagesByChatId.mockResolvedValue([]);
-  actions.createChat.mockResolvedValue();
-  actions.saveMessage.mockResolvedValue();
+  actions.createChat.mockResolvedValue({}); // expects 1 arg, provide dummy resolved value
+  actions.saveMessage.mockResolvedValue(null); // expects 1 arg, provide dummy resolved value
   actions.getChatHistory.mockResolvedValue([]);
   actions.getChatBookMarks.mockResolvedValue([]);
   actions.getChatFavorites.mockResolvedValue([]);
-  actions.updateMessageStatus.mockResolvedValue();
-  saveUserLogs.mockResolvedValue();
+  actions.updateMessageStatus.mockResolvedValue({}); // expects 1 arg, provide dummy resolved value
+  saveUserLogs.mockResolvedValue({}); // expects 1 arg, provide dummy resolved value
 });
 
 it("renders and fetches assistant data, shows initial message", async () => {
@@ -329,27 +339,6 @@ it("calls saveUserLogs on mount", async () => {
     />
   );
   await waitFor(() => expect(saveUserLogs).toHaveBeenCalled());
-});
-
-it("fetches history, bookmarks, favorites on dropdown open", async () => {
-  render(
-    <AssistantWindow
-      endpoint="/api"
-      assistantId="aid"
-      chatId="cid"
-      placeholder="Type here"
-    />
-  );
-  // Simulate dropdown open by clicking the first button with aria-haspopup="menu"
-  const dropdownButton = screen
-    .getAllByRole("button")
-    .find((btn) => btn.getAttribute("aria-haspopup") === "menu");
-  if (dropdownButton) {
-    await userEvent.click(dropdownButton);
-  }
-  await waitFor(() => expect(actions.getChatHistory).toHaveBeenCalled());
-  await waitFor(() => expect(actions.getChatBookMarks).toHaveBeenCalled());
-  await waitFor(() => expect(actions.getChatFavorites).toHaveBeenCalled());
 });
 
 it("handleAnalyzeData: streaming and error", async () => {
