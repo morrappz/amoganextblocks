@@ -70,8 +70,11 @@ jest.mock("@/utils/getCurrentOS", () => jest.fn(() => "Windows"));
 jest.mock("@/utils/geoLocation", () => jest.fn(() => Promise.resolve("US")));
 
 jest.mock("./AssistantMessages", () => ({
-  AssistantMessages: (props: any) => (
-    <div data-testid="assistant-messages">{JSON.stringify(props)}</div>
+  AssistantMessages: Object.assign(
+    (props: any) => (
+      <div data-testid="assistant-messages">{JSON.stringify(props)}</div>
+    ),
+    { displayName: "AssistantMessages" }
   ),
 }));
 jest.mock("./AssistantLayout", () => ({
@@ -109,33 +112,33 @@ jest.mock("./AssistantInput", () => ({
     { displayName: "AssistantInput" }
   ),
 }));
+jest.mock("../MenuItems/Assistants", () => ({
+  __esModule: true,
+  default: Object.assign(() => <div data-testid="assistants" />, { displayName: "AssistantsDefault" }),
+  Assistants: Object.assign(() => <div data-testid="assistants" />, { displayName: "Assistants" }),
+}));
+jest.mock("../UploadDocumentsForm", () => ({
+  UploadDocumentsForm: Object.assign(() => <div data-testid="upload-documents-form" />, { displayName: "UploadDocumentsForm" }),
+}));
 jest.mock("../MenuItems/Favorites", () => ({
   __esModule: true,
-  default: (props: any) => <div data-testid="favorites" {...props} />,
-  Favorites: (props: any) => <div data-testid="favorites" {...props} />,
+  default: Object.assign((props: any) => <div data-testid="favorites" {...props} />, { displayName: "FavoritesDefault" }),
+  Favorites: Object.assign((props: any) => <div data-testid="favorites" {...props} />, { displayName: "Favorites" }),
 }));
 jest.mock("../MenuItems/History", () => ({
   __esModule: true,
-  default: (props: any) => <div data-testid="history" {...props} />,
-  History: (props: any) => <div data-testid="history" {...props} />,
+  default: Object.assign((props: any) => <div data-testid="history" {...props} />, { displayName: "HistoryDefault" }),
+  History: Object.assign((props: any) => <div data-testid="history" {...props} />, { displayName: "History" }),
 }));
 jest.mock("../MenuItems/Bookmark", () => ({
   __esModule: true,
-  default: (props: any) => <div data-testid="bookmark" {...props} />,
-  BookMark: (props: any) => <div data-testid="bookmark" {...props} />,
+  default: Object.assign((props: any) => <div data-testid="bookmark" {...props} />, { displayName: "BookmarkDefault" }),
+  BookMark: Object.assign((props: any) => <div data-testid="bookmark" {...props} />, { displayName: "BookMark" }),
 }));
 jest.mock("../MenuItems/SuggestedPrompts", () => ({
   __esModule: true,
-  default: () => <div data-testid="suggested-prompts" />,
-  SuggestedPrompts: () => <div data-testid="suggested-prompts" />,
-}));
-jest.mock("../MenuItems/Assistants", () => ({
-  __esModule: true,
-  default: () => <div data-testid="assistants" />,
-  Assistants: () => <div data-testid="assistants" />,
-}));
-jest.mock("../UploadDocumentsForm", () => ({
-  UploadDocumentsForm: () => <div data-testid="upload-documents-form" />,
+  default: Object.assign(() => <div data-testid="suggested-prompts" />, { displayName: "SuggestedPromptsDefault" }),
+  SuggestedPrompts: Object.assign(() => <div data-testid="suggested-prompts" />, { displayName: "SuggestedPrompts" }),
 }));
 
 // Helper to flush promises
@@ -282,8 +285,7 @@ it("handleSubmit: success flow with streaming response", async () => {
           };
         },
       },
-    })
-  ) as any;
+    }) as any;
   render(
     <AssistantWindow
       endpoint="/api"
@@ -363,8 +365,7 @@ it("handleAnalyzeData: streaming and error", async () => {
           };
         },
       },
-    })
-  ) as any;
+    }) as any;
   render(
     <AssistantWindow
       endpoint="/api"
