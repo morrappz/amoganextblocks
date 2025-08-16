@@ -89,9 +89,13 @@ export default function SignIn() {
                 name="email"
                 render={({ field }) => (
                   <FormItem className="space-y-1">
-                    <FormLabel>Email</FormLabel>
+                    <FormLabel htmlFor="email">Email</FormLabel>
                     <FormControl>
-                      <Input placeholder="name@example.com" {...field} />
+                      <Input
+                        id="email"
+                        placeholder="name@example.com"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -103,7 +107,7 @@ export default function SignIn() {
                 render={({ field }) => (
                   <FormItem className="space-y-1">
                     <div className="flex items-center justify-between">
-                      <FormLabel>Password</FormLabel>
+                      <FormLabel htmlFor="password">Password</FormLabel>
                       <Link
                         href="#"
                         className="text-sm font-medium text-muted-foreground hover:opacity-75"
@@ -111,8 +115,13 @@ export default function SignIn() {
                         Forgot password?
                       </Link>
                     </div>
+
                     <FormControl>
-                      <PasswordInput placeholder="********" {...field} />
+                      <PasswordInput
+                        id="password"
+                        placeholder="********"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
