@@ -313,27 +313,35 @@ export function AssistantWindow(props: {
       if (props.chatId && session?.user?.user_catalog_id) {
         try {
           const existingMessages = await getMessagesByChatId(props.chatId);
+          let formattedMessages: Message[] = [];
           if (existingMessages && existingMessages.length > 0) {
-            // Convert database messages to useChat format
-            const formattedMessages: Message[] = existingMessages.map(
-              (msg: any) => ({
-                id: msg.id,
-                role: msg.role as "user" | "assistant" | "system",
-                content: msg.content,
-                createdAt: msg.createdAt ? new Date(msg.createdAt) : new Date(),
-                isLike: msg.isLike,
-                bookmark: msg.bookmark,
-                favorite: msg.favorite,
-                table_columns: msg.table_columns,
-                chart: msg.chart,
-                analysisPrompt: msg.analysisPrompt,
-                suggestions: msg.suggestions,
-              })
-            );
-            setMessages(formattedMessages);
+            formattedMessages = existingMessages.map((msg: any) => ({
+              id: msg.id,
+              role: msg.role as "user" | "assistant" | "system",
+              content: msg.content,
+              createdAt: msg.createdAt ? new Date(msg.createdAt) : new Date(),
+              isLike: msg.isLike,
+              bookmark: msg.bookmark,
+              favorite: msg.favorite,
+              table_columns: msg.table_columns,
+              chart: msg.chart,
+              analysisPrompt: msg.analysisPrompt,
+              suggestions: msg.suggestions,
+            }));
+          }
+          // Prepend assistant buttons message if needed
+          if (jsonData.length > 0) {
+            const initialMessage: Message = {
+              id: uuidv4(),
+              role: "assistant",
+              content: "How can I help you today?",
+              createdAt: new Date(),
+              suggestions: false,
+              initialMsg: true,
+            };
+            setMessages([initialMessage, ...formattedMessages]);
           } else {
-            // No messages found, clear the chat
-            setMessages([]);
+            setMessages(formattedMessages);
           }
         } catch (error) {
           console.error("Failed to load messages:", error);
@@ -350,7 +358,7 @@ export function AssistantWindow(props: {
     };
 
     loadMessages();
-  }, [props.chatId, session?.user?.user_catalog_id]);
+  }, [props.chatId, session?.user?.user_catalog_id, jsonData]);
 
   useEffect(() => {
     if (jsonData.length > 0) {
