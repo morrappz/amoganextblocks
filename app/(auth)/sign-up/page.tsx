@@ -136,9 +136,9 @@ export default function SignUp() {
                 name="first_name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>First Name</FormLabel>
+                    <FormLabel htmlFor="first_name">First Name</FormLabel>
                     <FormControl>
-                      <Input placeholder="John" {...field} />
+                      <Input id="first_name" placeholder="John" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -149,9 +149,9 @@ export default function SignUp() {
                 name="last_name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Last Name</FormLabel>
+                    <FormLabel htmlFor="last_name">Last Name</FormLabel>
                     <FormControl>
-                      <Input placeholder="Doe" {...field} />
+                      <Input id="last_name" placeholder="Doe" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -162,9 +162,13 @@ export default function SignUp() {
                 name="user_email"
                 render={({ field }) => (
                   <FormItem className="space-y-1">
-                    <FormLabel>Email</FormLabel>
+                    <FormLabel htmlFor="user_email">Email</FormLabel>
                     <FormControl>
-                      <Input placeholder="name@example.com" {...field} />
+                      <Input
+                        id="user_email"
+                        placeholder="name@example.com"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -175,9 +179,9 @@ export default function SignUp() {
                 name="user_name"
                 render={({ field }) => (
                   <FormItem className="space-y-1">
-                    <FormLabel>Username</FormLabel>
+                    <FormLabel htmlFor="user_name">Username</FormLabel>
                     <FormControl>
-                      <Input placeholder="" {...field} />
+                      <Input id="user_name" placeholder="" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -188,9 +192,13 @@ export default function SignUp() {
                 name="user_mobile"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Mobile</FormLabel>
+                    <FormLabel htmlFor="user_mobile">Mobile</FormLabel>
                     <FormControl>
-                      <Input placeholder="+1234567890" {...field} />
+                      <Input
+                        id="user_mobile"
+                        placeholder="+1234567890"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -201,9 +209,13 @@ export default function SignUp() {
                 name="password"
                 render={({ field }) => (
                   <FormItem className="space-y-1">
-                    <FormLabel>Password</FormLabel>
+                    <FormLabel htmlFor="password">Password</FormLabel>
                     <FormControl>
-                      <PasswordInput placeholder="********" {...field} />
+                      <PasswordInput
+                        id="password"
+                        placeholder="********"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -214,9 +226,15 @@ export default function SignUp() {
                 name="confirmPassword"
                 render={({ field }) => (
                   <FormItem className="space-y-1">
-                    <FormLabel>Confirm Password</FormLabel>
+                    <FormLabel htmlFor="confirmPassword">
+                      Confirm Password
+                    </FormLabel>
                     <FormControl>
-                      <PasswordInput placeholder="********" {...field} />
+                      <PasswordInput
+                        id="confirmPassword"
+                        placeholder="********"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -227,9 +245,15 @@ export default function SignUp() {
                 name="for_business_name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Business Name</FormLabel>
+                    <FormLabel htmlFor="for_business_name">
+                      Business Name
+                    </FormLabel>
                     <FormControl>
-                      <Input placeholder="Business Inc." {...field} />
+                      <Input
+                        id="for_business_name"
+                        placeholder="Business Inc."
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -240,9 +264,15 @@ export default function SignUp() {
                 name="for_business_number"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Business Number</FormLabel>
+                    <FormLabel htmlFor="for_business_number">
+                      Business Number
+                    </FormLabel>
                     <FormControl>
-                      <Input placeholder="1234567890" {...field} />
+                      <Input
+                        id="for_business_number"
+                        placeholder="1234567890"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
