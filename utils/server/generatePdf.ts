@@ -285,7 +285,10 @@ export async function generatePDFBuffer({
     row.map((cell: any) => String(cell || ""))
   );
 
-  const doc = new jsPDF();
+  // Use landscape for wide tables
+  const doc = new jsPDF({
+    orientation: headers.length > 8 ? "landscape" : "portrait",
+  });
 
   // Title
   doc.setFontSize(20).setFont("helvetica", "bold").text(title, 20, 20);
@@ -300,13 +303,21 @@ export async function generatePDFBuffer({
     y += splitDescription.length * 5 + 10;
   }
 
-  // Table
+  // Table with improved formatting
   autoTable(doc, {
     head: [headers],
     body: sanitizedRows,
     startY: y,
-    styles: { fontSize: 10, cellPadding: 3 },
+    styles: {
+      fontSize: 9,
+      cellPadding: 2,
+      overflow: "linebreak",
+      valign: "middle",
+    },
     headStyles: { fillColor: [230, 230, 230] },
+    columnStyles: Object.fromEntries(
+      headers.map((h, i) => [i, { cellWidth: "auto", minCellWidth: 30 }])
+    ),
   });
 
   y = (doc as any).lastAutoTable.finalY + 15;

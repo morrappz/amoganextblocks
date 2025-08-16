@@ -20,7 +20,7 @@ import { useSession } from "next-auth/react";
 import ShareMenu from "../MenuItems/ShareMenu";
 import RenderTable from "../RenderTable";
 import AnalyticCardFileApi from "../AnalyticCardFileApi/AnalyticCardFileApi";
-import ShareFileMenu from "../AnalyticCardFileApi/ShareMenu";
+import ShareFileMenu from "./MenuItems/ShareMenu";
 import AnalyticCard from "./AnalyticCard";
 import { AssistantData, ChartData, Query } from "../types/types";
 import { Button } from "@/components/ui/button";
