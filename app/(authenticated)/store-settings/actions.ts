@@ -357,7 +357,108 @@ export async function updateBusinessSettings(updatedSettings) {
   }
 }
 
-// save ai settings to user_catalog
+export interface AISettings {
+  provider: string;
+  model: string;
+  tokens_used: string;
+  start_date: string;
+  end_date: string;
+  status: "active" | "inactive";
+  id: string;
+  [key: string]: any;
+}
+
+export async function editAIFieldsSettings(
+  editId: string,
+  updatedFields: Partial<AISettings>
+) {
+  const session = await auth();
+  try {
+    // Fetch existing settings
+    const { data: userData, error: fetchError } = await postgrest
+      .asAdmin()
+      .from("user_catalog")
+      .select("api_connection_json")
+      .eq("user_catalog_id", session?.user?.user_catalog_id)
+      .single();
+
+    if (fetchError) {
+      throw fetchError;
+    }
+
+    let existingArray: AISettings[] = [];
+    if (
+      userData?.api_connection_json &&
+      Array.isArray(userData.api_connection_json)
+    ) {
+      existingArray = userData.api_connection_json as AISettings[];
+    }
+
+    // Edit the item by id
+    const updatedArray = existingArray.map((item) =>
+      item.id === editId ? { ...item, ...updatedFields } : item
+    );
+
+    // Save updated array
+    const { data, error } = await postgrest
+      .asAdmin()
+      .from("user_catalog")
+      .update({
+        api_connection_json: updatedArray,
+      })
+      .eq("user_catalog_id", session?.user?.user_catalog_id);
+    if (error) {
+      throw error;
+    }
+    return { data, success: true };
+  } catch (error) {
+    throw error;
+  }
+}
+
+// Delete AI settings by id
+export async function deleteAIFieldsSettings(deleteId: string) {
+  const session = await auth();
+  try {
+    // Fetch existing settings
+    const { data: userData, error: fetchError } = await postgrest
+      .asAdmin()
+      .from("user_catalog")
+      .select("api_connection_json")
+      .eq("user_catalog_id", session?.user?.user_catalog_id)
+      .single();
+
+    if (fetchError) {
+      throw fetchError;
+    }
+
+    let existingArray: AISettings[] = [];
+    if (
+      userData?.api_connection_json &&
+      Array.isArray(userData.api_connection_json)
+    ) {
+      existingArray = userData.api_connection_json as AISettings[];
+    }
+
+    // Remove the item by id
+    const updatedArray = existingArray.filter((item) => item.id !== deleteId);
+
+    // Save updated array
+    const { data, error } = await postgrest
+      .asAdmin()
+      .from("user_catalog")
+      .update({
+        api_connection_json: updatedArray,
+      })
+      .eq("user_catalog_id", session?.user?.user_catalog_id);
+    if (error) {
+      throw error;
+    }
+    return { data, success: true };
+  } catch (error) {
+    throw error;
+  }
+}
 
 export async function getAISettingsData() {
   const session = await auth();
@@ -378,13 +479,46 @@ export async function getAISettingsData() {
   }
 }
 
-export async function saveAIFieldsSettings(payload) {
+export async function saveAIFieldsSettings(payload, randomId: string) {
   const session = await auth();
   try {
+    // Fetch existing settings
+    const { data: userData, error: fetchError } = await postgrest
+      .asAdmin()
+      .from("user_catalog")
+      .select("api_connection_json")
+      .eq("user_catalog_id", session?.user?.user_catalog_id)
+      .single();
+
+    if (fetchError) {
+      throw fetchError;
+    }
+
+    // Parse existing array or start with empty
+    let existingArray = [];
+    if (
+      userData?.api_connection_json &&
+      Array.isArray(userData.api_connection_json)
+    ) {
+      existingArray = userData.api_connection_json;
+    }
+
+    // Append new payload
+    const updatedArray = [
+      ...existingArray,
+      {
+        ...payload,
+        id: randomId,
+      },
+    ];
+
+    // Save updated array
     const { data, error } = await postgrest
       .asAdmin()
       .from("user_catalog")
-      .update({ api_connection_json: payload })
+      .update({
+        api_connection_json: updatedArray,
+      })
       .eq("user_catalog_id", session?.user?.user_catalog_id);
     if (error) {
       throw error;

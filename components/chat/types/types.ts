@@ -34,3 +34,14 @@ export interface ChartData {
   xaxis: string;
   yaxis: string;
 }
+
+export interface AISettings {
+  provider: string;
+  model: string;
+  tokens_used: string;
+  start_date: string;
+  end_date: string;
+  status: "active" | "inactive";
+  id: string;
+  tokens_limit: string;
+}
