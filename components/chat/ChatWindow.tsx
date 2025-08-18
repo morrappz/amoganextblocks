@@ -72,6 +72,7 @@ import Favorites from "./MenuItems/Favorites";
 import { ChatMessages } from "./ChatMessages";
 import SuggestedPrompts from "./MenuItems/SuggestedPrompts";
 import Assistants from "./MenuItems/Assistants";
+import { AISettings } from "./types/types";
 
 type Message = {
   id: string;
@@ -152,7 +153,9 @@ export function ChatWindow(props: {
   const [currentChatId, setCurrentChatId] = useState(props.chatId);
   const [messagesLoaded, setMessagesLoaded] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState("english");
-  const [selectedAIModel, setSelectedAIModel] = useState("openai");
+  const [selectedAIModel, setSelectedAIModel] = useState<AISettings | null>(
+    null
+  );
   const msgId = uuidv4();
 
   const [sourcesForMessages, setSourcesForMessages] = useState<
@@ -637,7 +640,8 @@ export function ChatWindow(props: {
       <div className="flex relative z-50 bg-background items-center">
         <div className=" bg-muted rounded-full p-2.5 ">
           <p className="flex text-sm">
-            Model: <span className="capitalize"> {selectedAIModel}</span>
+            Model:{" "}
+            <span className="capitalize"> {selectedAIModel?.provider}</span>
           </p>
         </div>
         <div className=" w-full justify-end items-center flex  gap-2.5 z-50">

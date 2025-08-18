@@ -27,13 +27,20 @@ import Link from "next/link";
 import React from "react";
 import { useForm } from "react-hook-form";
 import z from "zod";
-import { getAISettingsData, saveAIFieldsSettings } from "../actions";
+import {
+  getAISettingsData,
+  saveAIFieldsSettings,
+  editAIFieldsSettings,
+} from "../actions";
 import { toast } from "sonner";
+import { ArrowLeft } from "lucide-react";
+import { v4 as uuidv4 } from "uuid";
 
 const aiSchema = z.object({
   provider: z.string().min(1, "Provider is required"),
   model: z.string().min(1, "Model is required"),
-  tokens_used: z.string().min(0, "Tokens used must be a positive number"),
+  key: z.string().min(10, "Key must be at least 10 characters long"),
+  tokens_limit: z.string().min(0, "Tokens used must be a positive number"),
   start_date: z.string().min(1, "Start date is required"),
   end_date: z.string().min(1, "End date is required"),
   status: z.enum(["active", "inactive"]),
@@ -47,13 +54,16 @@ const NewSettings = ({ id }: { id?: string }) => {
     defaultValues: {
       provider: "",
       model: "",
-      tokens_used: "",
+      key: "",
+      tokens_limit: "",
       start_date: "",
       end_date: "",
       status: "active",
       created_date: "",
     },
   });
+
+  const randomId = uuidv4();
 
   const providers = Object.keys(PROVIDER_MODELS);
   const provider = form.watch("provider");
@@ -63,34 +73,50 @@ const NewSettings = ({ id }: { id?: string }) => {
     form.reset();
   };
 
+  // Use a ref to store the current edit id
+  const editIdRef = React.useRef<string | undefined>(id);
+
   React.useEffect(() => {
     try {
-      const fetchAISettings = async () => {
-        const response = await getAISettingsData();
-        if (response?.data) {
-          const aiData = response.data.api_connection_json;
-
-          form.reset({
-            provider: aiData.provider,
-            model: aiData.model,
-            tokens_used: aiData.tokens_used,
-            start_date: aiData.start_date,
-            end_date: aiData.end_date,
-            status: aiData.status,
-            created_date: aiData.created_date,
-          });
-        }
-      };
-      fetchAISettings();
+      if (id) {
+        const fetchAISettings = async () => {
+          const response = await getAISettingsData();
+          if (response?.data) {
+            const aiData = response.data.api_connection_json;
+            const filterJSONData = aiData.filter((data) => data.id === id);
+            if (filterJSONData.length > 0) {
+              form.reset({
+                provider: filterJSONData[0].provider,
+                model: filterJSONData[0].model,
+                key: filterJSONData[0].key,
+                tokens_limit: filterJSONData[0].tokens_limit,
+                start_date: filterJSONData[0].start_date,
+                end_date: filterJSONData[0].end_date,
+                status: filterJSONData[0].status,
+                created_date: filterJSONData[0].created_date,
+              });
+              editIdRef.current = id;
+            }
+          }
+        };
+        fetchAISettings();
+      }
     } catch (error) {
       console.error("Error fetching AI settings:", error);
     }
-  }, [form]);
+  }, [form, id]);
 
   const handleFormSubmit = async (data: z.infer<typeof aiSchema>) => {
     try {
       setIsLoading(true);
-      const response = await saveAIFieldsSettings(data);
+      let response;
+      if (editIdRef.current) {
+        // Edit mode
+        response = await editAIFieldsSettings(editIdRef.current, data);
+      } else {
+        // Add mode
+        response = await saveAIFieldsSettings(data, randomId);
+      }
 
       if (!response.success) {
         toast.error("Error saving AI settings");
@@ -118,7 +144,10 @@ const NewSettings = ({ id }: { id?: string }) => {
             </div>
             <div>
               <Link href="/store-settings">
-                <Button variant="outline">Go Back</Button>
+                <Button variant="outline">
+                  <ArrowLeft className="w-5 h-5 text-muted-foreground" /> Go
+                  Back
+                </Button>
               </Link>
             </div>
           </div>
@@ -174,10 +203,22 @@ const NewSettings = ({ id }: { id?: string }) => {
 
             <FormField
               control={form.control}
-              name="tokens_used"
+              name="key"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Tokens Used</FormLabel>
+                  <FormLabel>API KEY</FormLabel>
+                  <Input type="text" {...field} />
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="tokens_limit"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Tokens Limit</FormLabel>
                   <Input type="number" {...field} />
                   <FormMessage />
                 </FormItem>

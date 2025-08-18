@@ -1,5 +1,6 @@
+"use client";
 import { cn } from "@/utils/cn";
-import React, { FormEvent, ReactNode } from "react";
+import React, { Dispatch, FormEvent, ReactNode, SetStateAction } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,6 +19,17 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "../ui/button";
+import { getAISettingsData } from "@/app/(authenticated)/store-settings/actions";
+import { toast } from "sonner";
+import { AISettings } from "./types/types";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
 
 export function ChatInput(props: {
   onSubmit: (e: FormEvent<HTMLFormElement>) => void;
@@ -30,9 +42,37 @@ export function ChatInput(props: {
   className?: string;
   actions?: ReactNode;
   setSelectedLanguage: (value: string) => void;
-  setSelectedAIModel: (value: string) => void;
+  setSelectedAIModel: Dispatch<SetStateAction<AISettings | null>>;
+  selectedAIModel: AISettings | null;
 }) {
   const disabled = props.loading && props.onStop == null;
+  const [aiModels, setAIModels] = React.useState<AISettings[]>([]);
+  const [aiModelLoading, setAIModelLoading] = React.useState(false);
+
+  React.useEffect(() => {
+    const fetchAIModels = async () => {
+      try {
+        setAIModelLoading(true);
+        const response = await getAISettingsData();
+
+        if (response.data) {
+          const aiModels = response.data.api_connection_json;
+
+          const filterActiveModels = aiModels.filter(
+            (model: AISettings) => model.status === "active"
+          );
+          setAIModels(filterActiveModels);
+        }
+      } catch (error) {
+        toast.error("Error fetching AI Models");
+        throw error;
+      } finally {
+        setAIModelLoading(false);
+      }
+    };
+    fetchAIModels();
+  }, []);
+
   return (
     <form
       onSubmit={(e) => {
@@ -147,48 +187,36 @@ export function ChatInput(props: {
                   </DropdownMenuGroup>
                 </DropdownMenuContent>
               </DropdownMenu>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <div className="flex items-center gap-2.5 bg-muted border-2 p-1  cursor-pointer rounded-full">
-                    <Settings2 className="w-5 h-5" />
-                    <h1 className="">Model</h1>
-                  </div>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent defaultValue={"openai"}>
-                  <DropdownMenuGroup>
-                    <DropdownMenuItem
-                      onClick={() => props.setSelectedAIModel("openai")}
-                    >
-                      Open AI
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => props.setSelectedAIModel("gemini")}
-                    >
-                      Gemini
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => props.setSelectedAIModel("claude")}
-                    >
-                      Claude
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => props.setSelectedAIModel("deepseek")}
-                    >
-                      DeepSeek
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => props.setSelectedAIModel("grok")}
-                    >
-                      Grok
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => props.setSelectedAIModel("mistral")}
-                    >
-                      Mistral
-                    </DropdownMenuItem>
-                  </DropdownMenuGroup>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <Select
+                value={props.selectedAIModel?.model || ""}
+                onValueChange={(val) => {
+                  const selected = aiModels.find((m) => m.model === val);
+                  if (selected) props.setSelectedAIModel(selected);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Model" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    {aiModelLoading ? (
+                      <p className="bg-muted flex items-center gap-2.5">
+                        <LoaderCircle className="animate-spin" />
+                        <span>Loading...</span>
+                      </p>
+                    ) : (
+                      aiModels &&
+                      aiModels.length > 0 &&
+                      aiModels[0] !== null &&
+                      aiModels.map((model) => (
+                        <SelectItem value={model.model} key={model.id}>
+                          {model.model}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
             </div>
             {props.children}
           </div>
