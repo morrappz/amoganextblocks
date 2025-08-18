@@ -244,15 +244,13 @@ export async function saveAISettings(
     }
 
     console.log("📤 Saving AI settings to database...");
-    const { error } = await postgrest
-      .from("business_settings")
-      .upsert(
-        {
-          business_number: businessNumber,
-          ai_provider_key: { provider, apiKey },
-        },
-        { onConflict: "business_number" }
-      );
+    const { error } = await postgrest.from("business_settings").upsert(
+      {
+        business_number: businessNumber,
+        ai_provider_key: { provider, apiKey },
+      },
+      { onConflict: "business_number" }
+    );
 
     if (error) {
       console.log("❌ Database save error:", error);
@@ -277,7 +275,9 @@ export async function saveAISettings(
 }
 
 // Load AI settings
-export async function loadAISettings(business_number?: string): Promise<{ provider: string; apiKey: string } | null> {
+export async function loadAISettings(
+  business_number?: string
+): Promise<{ provider: string; apiKey: string } | null> {
   console.log("🔍 Loading AI settings...");
 
   try {
@@ -354,5 +354,43 @@ export async function updateBusinessSettings(updatedSettings) {
     return {
       error,
     };
+  }
+}
+
+// save ai settings to user_catalog
+
+export async function getAISettingsData() {
+  const session = await auth();
+  try {
+    const { data, error } = await postgrest
+      .from("user_catalog")
+      .select("api_connection_json,user_catalog_id")
+      .eq("user_catalog_id", session?.user?.user_catalog_id)
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    return { data, success: true };
+  } catch (error) {
+    return { error };
+  }
+}
+
+export async function saveAIFieldsSettings(payload) {
+  const session = await auth();
+  try {
+    const { data, error } = await postgrest
+      .asAdmin()
+      .from("user_catalog")
+      .update({ api_connection_json: payload })
+      .eq("user_catalog_id", session?.user?.user_catalog_id);
+    if (error) {
+      throw error;
+    }
+    return { data, success: true };
+  } catch (error) {
+    throw error;
   }
 }
