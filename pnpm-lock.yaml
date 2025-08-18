@@ -372,7 +372,7 @@ importers:
         specifier: ^19.0.0
         version: 19.1.1(react@19.1.1)
       react-hook-form:
-        specifier: ^7.58.1
+        specifier: ^7.62.0
         version: 7.62.0(react@19.1.1)
       react-icons:
         specifier: ^5.5.0
@@ -429,7 +429,7 @@ importers:
         specifier: ^0.18.5
         version: 0.18.5
       zod:
-        specifier: ^3.25.67
+        specifier: ^3.25.76
         version: 3.25.76
       zod-to-json-schema:
         specifier: ^3.23.2

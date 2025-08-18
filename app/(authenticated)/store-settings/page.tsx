@@ -41,6 +41,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import AISettings from "./_components/AISettings";
 
 type Platform = "woocommerce" | "shopify";
 
@@ -331,7 +332,7 @@ export default function ApiSettingsPage() {
                 </TabsContent>
 
                 {/* AI APIs Tab Content */}
-                <TabsContent value="ai" className="mt-4">
+                {/* <TabsContent value="ai" className="mt-4">
                   <div className="space-y-2">
                     <Label htmlFor="provider">Provider</Label>
                     <Select
@@ -362,6 +363,9 @@ export default function ApiSettingsPage() {
                       Save AI Settings
                     </Button>
                   </div>
+                </TabsContent> */}
+                <TabsContent value="ai">
+                  <AISettings />
                 </TabsContent>
               </Tabs>
             </div>
