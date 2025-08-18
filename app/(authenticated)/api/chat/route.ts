@@ -251,7 +251,17 @@ export async function POST(req: NextRequest) {
       language: selectedLanguage,
     });
 
-    return new StreamingTextResponse(stream);
+    const promptValue = await prompt.invoke({
+      chat_history: formattedPreviousMessages.join("\n"),
+      input: currentMessageContent,
+      language: selectedLanguage,
+    });
+    const modelResult = await model.invoke(promptValue);
+    const usage = modelResult.usage_metadata;
+
+    const response = new StreamingTextResponse(stream);
+    response.headers.set("x-usage", JSON.stringify(usage));
+    return response;
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: e.status ?? 500 });
   }
