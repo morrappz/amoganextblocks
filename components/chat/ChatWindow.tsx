@@ -4,7 +4,7 @@
 
 // import { type Message } from "ai";
 import { useChat } from "ai/react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Dispatch, FormEvent, ReactNode, SetStateAction } from "react";
 import { toast } from "sonner";
 import { StickToBottom, useStickToBottomContext } from "use-stick-to-bottom";
@@ -168,6 +168,7 @@ export function ChatWindow(props: {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [bookMarkLoading, setBookMarkLoading] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
+  const usageRef = useRef<any>(null);
 
   // Fetch history when dropdown opens
   const fetchHistory = async () => {
@@ -259,6 +260,8 @@ export function ChatWindow(props: {
       aiModel: selectedAIModel,
     },
     onResponse(response) {
+      const usageHeader = response.headers.get("x-usage");
+      usageRef.current = usageHeader ? JSON.parse(usageHeader) : null;
       const sourcesHeader = response.headers.get("x-sources");
       const sources = sourcesHeader
         ? JSON.parse(Buffer.from(sourcesHeader, "base64").toString("utf8"))
@@ -304,6 +307,9 @@ export function ChatWindow(props: {
             isLike: false,
             bookmark: false,
             favorite: false,
+            prompt_tokens: usageRef.current?.input_tokens,
+            completion_tokens: usageRef.current?.output_tokens,
+            total_tokens: usageRef.current?.total_tokens,
           });
           // handleHistory();
         } catch (error) {
@@ -325,7 +331,6 @@ export function ChatWindow(props: {
     },
     generateId: () => uuidv4(),
   });
-
   // Function to update message status
   const handleUpdateMessage = async (
     messageId: string,
@@ -740,6 +745,7 @@ export function ChatWindow(props: {
             placeholder={props.placeholder ?? "What's it like to be a pirate?"}
             setSelectedLanguage={setSelectedLanguage}
             setSelectedAIModel={setSelectedAIModel}
+            selectedAIModel={selectedAIModel}
           >
             {props.showIngestForm && (
               <Dialog>
