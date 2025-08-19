@@ -10399,6 +10399,9 @@ export type Database = {
           chat_group: string | null;
           created_user_name: string | null;
           ref_user_id: string | null;
+          prompt_tokens: number | null;
+          completion_tokens: number | null;
+          total_tokens: number | null;
         };
         Insert: {
           chat_session: Json | null;
@@ -10501,6 +10504,9 @@ export type Database = {
           chat_group: string | null;
           created_user_name: string | null;
           ref_user_id: string | null;
+           prompt_tokens: number | null;
+          completion_tokens: number | null;
+          total_tokens: number | null;
         };
         Update: {
           chat_session: Json | null;
@@ -10603,6 +10609,9 @@ export type Database = {
           chat_group: string | null;
           created_user_name: string | null;
           ref_user_id: string | null;
+           prompt_tokens: number | null;
+          completion_tokens: number | null;
+          total_tokens: number | null;
         };
         Relationships: [];
       };
