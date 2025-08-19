@@ -66,12 +66,7 @@ export function ContactsTable({ promises }: ContactsTableProps) {
    * @prop {React.ReactNode} [icon] - An optional icon to display next to the label.
    * @prop {boolean} [withCount] - An optional boolean to display the count of the filter option.
    */
-  const filterFields: DataTableFilterField<Message>[] = [
-    {
-      id: "content",
-      label: "Content",
-    },
-  ];
+  const filterFields: DataTableFilterField<Message>[] = [];
 
   /**
    * Advanced filter fields for the data table.
@@ -87,6 +82,16 @@ export function ContactsTable({ promises }: ContactsTableProps) {
     {
       id: "content",
       label: "Content",
+      type: "text",
+    },
+    {
+      id: "role",
+      label: "Role",
+      type: "text",
+    },
+    {
+      id: "chat_group",
+      label: "Chat Group",
       type: "text",
     },
   ];
@@ -158,7 +163,7 @@ export function ContactsTable({ promises }: ContactsTableProps) {
                   view={view}
                   setView={setView}
                 />
-                <Button
+                {/* <Button
                   size="sm"
                   onClick={() =>
                     setRowAction({ row: {} as Row<Message>, type: "new" })
@@ -166,7 +171,7 @@ export function ContactsTable({ promises }: ContactsTableProps) {
                 >
                   <Plus className="size-4" />
                   <span className="hidden sm:block">Add</span>
-                </Button>
+                </Button> */}
               </>
             }
           >
