@@ -35,6 +35,7 @@ import {
 import { toast } from "sonner";
 import { ArrowLeft } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const aiSchema = z.object({
   provider: z.string().min(1, "Provider is required"),
@@ -45,6 +46,7 @@ const aiSchema = z.object({
   end_date: z.string().min(1, "End date is required"),
   status: z.enum(["active", "inactive"]),
   created_date: z.string(),
+  default: z.boolean().default(false),
 });
 
 const NewSettings = ({ id }: { id?: string }) => {
@@ -60,6 +62,7 @@ const NewSettings = ({ id }: { id?: string }) => {
       end_date: "",
       status: "active",
       created_date: "",
+      default: false,
     },
   });
 
@@ -94,6 +97,7 @@ const NewSettings = ({ id }: { id?: string }) => {
                 end_date: filterJSONData[0].end_date,
                 status: filterJSONData[0].status,
                 created_date: filterJSONData[0].created_date,
+                default: filterJSONData[0].default || false,
               });
               editIdRef.current = id;
             }
@@ -266,6 +270,19 @@ const NewSettings = ({ id }: { id?: string }) => {
                     </SelectContent>
                   </Select>
                   <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              name="default"
+              control={form.control}
+              render={({ field }) => (
+                <FormItem className="flex items-center gap-2.5 mt-5">
+                  <Checkbox
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                  <FormLabel>Default Model</FormLabel>
                 </FormItem>
               )}
             />

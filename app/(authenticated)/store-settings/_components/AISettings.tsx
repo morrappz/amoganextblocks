@@ -25,6 +25,7 @@ interface AISettings {
   status: "active" | "inactive";
   id: string;
   tokens_limit: string;
+  default: boolean;
 }
 
 const AISettings = () => {
@@ -68,6 +69,8 @@ const AISettings = () => {
     }
   };
 
+  console.log("data------", data);
+
   return (
     <div>
       <div className="flex items-center gap-2.5 w-full">
@@ -100,7 +103,7 @@ const AISettings = () => {
           data?.length > 0 &&
           data[0] !== null &&
           data.map((item) => (
-            <Card key={item?.provider} className="mb-5">
+            <Card key={item?.id} className="mb-5">
               <CardContent className="p-2.5 space-y-2">
                 <h1 className="capitalize">Provider: {item?.provider}</h1>
                 <h1>Model: {item?.model}</h1>
@@ -119,6 +122,9 @@ const AISettings = () => {
                 <h1 className="flex items-center gap-2">
                   <Calendar className="w-5 h-5 text-muted-foreground" /> End
                   Date: {item?.end_date}
+                </h1>
+                <h1 className="flex items-center gap-2">
+                  Default Model: {item?.default ? "True" : "False"}
                 </h1>
                 <div className="flex items-center justify-between">
                   <h1 className="flex items-center gap-2">
