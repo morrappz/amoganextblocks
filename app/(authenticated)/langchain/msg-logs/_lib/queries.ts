@@ -28,14 +28,14 @@ function applyFilters(
   } else {
     if (input.query) {
       query = query.or(
-        `first_name.ilike.%${input.query}%,last_name.ilike.%${input.query}%,user_email.ilike.%${input.query}%,user_name.ilike.%${input.query}%`
+        `content.ilike.%${input.query}%,role.ilike.%${input.query}%,chat_group.ilike.${input.query}`
       );
     }
     if (input.from) {
-      query = query.gte("updated_date", new Date(input.from).toISOString());
+      query = query.gte("createdAt", new Date(input.from).toISOString());
     }
     if (input.to) {
-      query = query.lte("updated_date", new Date(input.to).toISOString());
+      query = query.lte("createdAt", new Date(input.to).toISOString());
     }
     if (input?.status?.length > 0) {
       query = query.in("status", input.status);
