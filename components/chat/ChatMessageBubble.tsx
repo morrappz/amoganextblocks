@@ -1,6 +1,9 @@
 //Chat Message Bubble
 
-import { getChatBookMarks } from "@/app/(authenticated)/langchain-chat/lib/actions";
+import {
+  getChatBookMarks,
+  updateMessageStatus,
+} from "@/app/(authenticated)/langchain-chat/lib/actions";
 import { cn } from "@/utils/cn";
 import {
   AlarmClockCheck,
@@ -24,7 +27,7 @@ import ShareFileMenu from "./AnalyticCardFileApi/ShareMenu";
 
 type Message = {
   id: string;
-  role: "user" | "assistant" | "system";
+  role: "user" | "assistant" | "system" | "function" | "data" | "tool";
   content: string;
   createdAt: Date;
   isLike?: boolean;
@@ -48,6 +51,7 @@ interface Props {
     headers: string[];
     rows: string[][];
   } | null;
+  messages: Message[]; // <-- add messages array
 }
 
 export const ChatMessageBubble = React.memo(function ChatMessageBubble(
@@ -71,11 +75,64 @@ export const ChatMessageBubble = React.memo(function ChatMessageBubble(
     props.onBookmarkUpdate?.();
   };
 
-  const handleFavorite = () => {
-    onUpdateMessage(message.id, {
-      favorite: !message.favorite,
-    });
-    props.onFavoriteUpdate?.();
+  // Custom favorite logic: if assistant, favorite the previous user prompt
+  const getPromptFavoriteStatus = () => {
+    if (message.role === "assistant" && Array.isArray(props.messages)) {
+      const idx = props.messages.findIndex((m) => m.id === message.id);
+      if (idx > 0) {
+        const prevUserMsg = props.messages
+          .slice(0, idx)
+          .reverse()
+          .find((m) => m.role === "user");
+        return prevUserMsg?.favorite ?? false;
+      }
+    }
+    return message.favorite ?? false;
+  };
+
+  const handleFavorite = async () => {
+    if (message.role === "assistant" && Array.isArray(props.messages)) {
+      const idx = props.messages.findIndex((m) => m.id === message.id);
+      if (idx > 0) {
+        // Find the previous user message's latest value from props.messages
+        const prevUserMsg = props.messages
+          .slice(0, idx)
+          .reverse()
+          .find((m) => m.role === "user");
+        if (prevUserMsg) {
+          // Get the latest favorite value from props.messages
+          const latestPrompt = props.messages.find(
+            (m) => m.id === prevUserMsg.id
+          );
+          const isFav = latestPrompt?.favorite ?? false;
+          try {
+            await updateMessageStatus({
+              messageId: prevUserMsg.id,
+              favorite: !isFav,
+            });
+            onUpdateMessage(prevUserMsg.id, { favorite: !isFav });
+            toast.success(!isFav ? "Prompt favorited" : "Prompt unfavorited");
+            props.onFavoriteUpdate?.(); // trigger parent refresh
+          } catch (error) {
+            toast.error("Failed to save favorite status");
+          }
+          return;
+        }
+      }
+      toast.error("No prompt found to favorite");
+    } else {
+      // Get the latest favorite value for the current message
+      const latestMsg = props.messages.find((m) => m.id === message.id);
+      const isFav = latestMsg?.favorite ?? false;
+      try {
+        await updateMessageStatus({ messageId: message.id, favorite: !isFav });
+        onUpdateMessage(message.id, { favorite: !isFav });
+        toast.success(!isFav ? "Prompt favorited" : "Prompt unfavorited");
+        props.onFavoriteUpdate?.();
+      } catch (error) {
+        toast.error("Failed to save favorite status");
+      }
+    }
   };
 
   const handleCopy = () => {
@@ -144,11 +201,11 @@ export const ChatMessageBubble = React.memo(function ChatMessageBubble(
                   } cursor-pointer hover:text-primary text-muted-foreground`}
                 />
 
-                <Star
+                <Heart
                   onClick={handleFavorite}
                   className={`h-5 w-5 ${
-                    message.favorite ? "fill-yellow-500 text-yellow-500" : ""
-                  } cursor-pointer hover:text-yellow-600 text-muted-foreground`}
+                    getPromptFavoriteStatus() ? "fill-red-500 text-red-500" : ""
+                  } cursor-pointer hover:text-red-600 text-muted-foreground`}
                 />
                 <AlarmClockCheck className="h-5 cursor-pointer hover:text-primary w-5 text-muted-foreground" />
               </div>

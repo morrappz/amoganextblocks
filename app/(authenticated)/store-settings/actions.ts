@@ -394,10 +394,24 @@ export async function editAIFieldsSettings(
       existingArray = userData.api_connection_json as AISettings[];
     }
 
-    // Edit the item by id
-    const updatedArray = existingArray.map((item) =>
-      item.id === editId ? { ...item, ...updatedFields } : item
-    );
+    let updatedArray;
+    if (updatedFields.default === true) {
+      // If setting this record to default, set all others to default: false
+      updatedArray = existingArray.map((item) => {
+        if (item.id === editId) {
+          return { ...item, ...updatedFields, default: true };
+        } else {
+          return { ...item, default: false };
+        }
+      });
+    } else {
+      // Otherwise, just update the record
+      updatedArray = existingArray.map((item) =>
+        item.id === editId
+          ? { ...item, ...updatedFields, default: false }
+          : item
+      );
+    }
 
     // Save updated array
     const { data, error } = await postgrest
@@ -503,14 +517,26 @@ export async function saveAIFieldsSettings(payload, randomId: string) {
       existingArray = userData.api_connection_json;
     }
 
-    // Append new payload
-    const updatedArray = [
-      ...existingArray,
-      {
+    let updatedArray;
+    if (payload.default === true) {
+      // If new payload is default, set all others to default: false
+      updatedArray = existingArray.map((item) => ({ ...item, default: false }));
+      updatedArray.push({
         ...payload,
         id: randomId,
-      },
-    ];
+        default: true,
+      });
+    } else {
+      // Otherwise, just append with default: false
+      updatedArray = [
+        ...existingArray,
+        {
+          ...payload,
+          id: randomId,
+          default: false,
+        },
+      ];
+    }
 
     // Save updated array
     const { data, error } = await postgrest

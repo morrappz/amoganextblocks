@@ -4,7 +4,7 @@ import { IntermediateStep } from "./IntermediateStep";
 
 type Message = {
   id: string;
-  role: "user" | "assistant" | "system";
+  role: "user" | "assistant" | "system" | "function" | "data" | "tool";
   content: string;
   createdAt: Date;
   isLike?: boolean;
@@ -145,6 +145,7 @@ export const ChatMessages = React.memo(function ChatMessages(props: {
             analyticCard={analyticCard}
             analyticCardWithFileApi={analyticCardWithFileApi}
             table={table}
+            messages={props.messages}
             // onBookmarkUpdate={handleBookmarkUpdate}
             // onFavoriteUpdate={handleFavoriteUpdate}
           />

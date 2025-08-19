@@ -8,7 +8,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { formatDate } from "@/lib/utils";
-import { LoaderCircle, Star, Trash } from "lucide-react";
+import { Heart, LoaderCircle, Star, Trash } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import {
@@ -30,11 +30,13 @@ const Favorites = ({
   onFavoriteUpdate,
   onDropdownOpen,
   loading,
+  onSendFavorite,
 }: {
   favorites: Props[];
   onFavoriteUpdate: () => void;
   onDropdownOpen: () => void;
   loading: boolean;
+  onSendFavorite: (content: string) => void;
 }) => {
   const handleDelete = async (id: string) => {
     try {
@@ -58,7 +60,7 @@ const Favorites = ({
       >
         <DropdownMenuTrigger asChild>
           {/* <Button variant={"ghost"} size={"icon"} className="rounded-full"> */}
-          <Star className="w-5 h-5 cursor-pointer text-muted-foreground" />
+          <Heart className="w-5 h-5 cursor-pointer text-muted-foreground" />
           {/* </Button> */}
         </DropdownMenuTrigger>
         <DropdownMenuContent className="w-[300px]" side="bottom" align="end">
@@ -73,17 +75,16 @@ const Favorites = ({
             ) : favorites?.length > 0 ? (
               favorites.map((item) => (
                 <DropdownMenuItem
-                  className="bg-muted  overflow-y-auto mb-2"
+                  className="bg-muted  overflow-y-auto mb-2 cursor-pointer"
                   key={item.id}
+                  onClick={() => onSendFavorite(item.content)}
                 >
                   <div className="flex justify-between w-full items-center">
                     <div className="overflow-ellipsis ">
-                      <Link href={`/langchain-chat/chat/${item.chatId}`}>
-                        <p className="max-w-[90%] overflow-ellipsis line-clamp-1">
-                          {item.content}
-                        </p>
-                        <p>{formatDate(item.createdAt)}</p>
-                      </Link>
+                      <p className="max-w-[90%] overflow-ellipsis line-clamp-1">
+                        {item.content}
+                      </p>
+                      <p>{formatDate(item.createdAt)}</p>
                     </div>
                     <div className="hover:bg-red-100 rounded-md p-2.5">
                       <Trash

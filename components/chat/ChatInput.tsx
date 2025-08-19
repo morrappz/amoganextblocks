@@ -50,6 +50,19 @@ export function ChatInput(props: {
   const [aiModelLoading, setAIModelLoading] = React.useState(false);
 
   React.useEffect(() => {
+    if (
+      aiModels.length > 0 &&
+      aiModels[0] !== null &&
+      !props.selectedAIModel // Only set if not already selected
+    ) {
+      const defaultModel = aiModels.find((model) => model.default);
+      if (defaultModel) {
+        props.setSelectedAIModel(defaultModel);
+      }
+    }
+  }, [aiModels, props]);
+
+  React.useEffect(() => {
     const fetchAIModels = async () => {
       try {
         setAIModelLoading(true);
@@ -209,7 +222,10 @@ export function ChatInput(props: {
                       aiModels.length > 0 &&
                       aiModels[0] !== null &&
                       aiModels.map((model) => (
-                        <SelectItem value={model.model} key={model.id}>
+                        <SelectItem
+                          value={model.model}
+                          key={model.id + "-" + model.model}
+                        >
                           {model.model}
                         </SelectItem>
                       ))

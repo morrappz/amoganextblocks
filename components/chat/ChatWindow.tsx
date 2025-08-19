@@ -76,13 +76,13 @@ import { AISettings } from "./types/types";
 
 type Message = {
   id: string;
-  role: "user" | "assistant" | "system";
+  role: "user" | "assistant" | "system" | "function" | "data" | "tool";
   content: string;
   createdAt: Date;
   isLike?: boolean;
   bookmark?: boolean;
   favorite?: boolean;
-  chart?: any; // Can now hold complex chart objects
+  chart?: any;
 };
 
 type IntermediateStepType = {
@@ -337,34 +337,40 @@ export function ChatWindow(props: {
     updates: Partial<Message>
   ) => {
     try {
-      // Update local state
-      const updatedMessages = chat.messages.map((msg) =>
-        msg.id === messageId ? { ...msg, ...updates } : msg
-      );
-      chat.setMessages(updatedMessages);
+      let messageIds: string[] = [];
+      if (Array.isArray(messageId)) {
+        messageIds = messageId;
+      } else {
+        messageIds = [messageId];
+      }
 
-      // Update database if currentChatId exists
+      // Update database for all affected messages
       if (currentChatId) {
-        await updateMessageStatus({
-          messageId,
-          isLike: updates.isLike,
-          bookmark: updates.bookmark,
-          favorite: updates.favorite,
-        });
+        for (const id of messageIds) {
+          const dbUpdates: any = { messageId: id };
+          if (updates.isLike !== undefined) dbUpdates.isLike = updates.isLike;
+          if (updates.bookmark !== undefined)
+            dbUpdates.bookmark = updates.bookmark;
+          if (updates.favorite !== undefined)
+            dbUpdates.favorite = updates.favorite;
+          await updateMessageStatus(dbUpdates);
+        }
 
-        // Show appropriate toast message
-        if (updates.bookmark !== undefined) {
-          toast.success(
-            updates.bookmark ? "Message bookmarked" : "Bookmark removed"
+        // Refetch messages from DB to ensure UI is in sync
+        const refreshedMessages = await getMessagesByChatId(currentChatId);
+        if (refreshedMessages && refreshedMessages.length > 0) {
+          const formattedMessages: Message[] = refreshedMessages.map(
+            (msg: any) => ({
+              id: msg.id,
+              role: msg.role || "user",
+              content: msg.content,
+              createdAt: msg.createdAt ? new Date(msg.createdAt) : new Date(),
+              isLike: msg.isLike,
+              bookmark: msg.bookmark,
+              favorite: msg.favorite,
+            })
           );
-        }
-        if (updates.favorite !== undefined) {
-          toast.success(
-            updates.favorite ? "Message favorited" : "Favorite removed"
-          );
-        }
-        if (updates.isLike !== undefined) {
-          toast.success(updates.isLike ? "Message liked" : "Like removed");
+          chat.setMessages(formattedMessages);
         }
       }
     } catch (error) {
@@ -386,7 +392,7 @@ export function ChatWindow(props: {
             const formattedMessages: Message[] = existingMessages.map(
               (msg: any) => ({
                 id: msg.id,
-                role: msg.role as "user" | "assistant" | "system",
+                role: msg.role || "user",
                 content: msg.content,
                 createdAt: msg.createdAt ? new Date(msg.createdAt) : new Date(),
                 isLike: msg.isLike,
@@ -554,15 +560,15 @@ export function ChatWindow(props: {
         }
       );
 
-      const intermediateStepMessages: IntermediateStepType[] = [];
+      const intermediateStepMessages: Message[] = [];
       for (let i = 0; i < toolCallMessages.length; i += 2) {
-        const aiMessage = toolCallMessages[i];
+        const aiMessage = toolCallMessages[i] as any;
         const toolMessage = toolCallMessages[i + 1];
         intermediateStepMessages.push({
           id: msgId,
-          role: "system" as const,
+          role: "tool",
           content: JSON.stringify({
-            action: aiMessage.tool_calls?.[0],
+            action: aiMessage.tool_calls ? aiMessage.tool_calls[0] : undefined,
             observation: toolMessage.content,
           }),
           createdAt: new Date(),
@@ -584,13 +590,12 @@ export function ChatWindow(props: {
       const finalAssistantMessage = {
         id: msgId,
         content: responseMessages[responseMessages.length - 1].content,
-        role: "assistant" as const,
+        role: "assistant",
         createdAt: new Date(),
         isLike: false,
         bookmark: false,
         favorite: false,
       };
-
       chat.setMessages([...newMessages, finalAssistantMessage]);
 
       // Save the final assistant message
@@ -640,6 +645,18 @@ export function ChatWindow(props: {
   //   setFavorites(updatedBookmarks);
   // };
   // console.log("messages-----", chat.messages);
+  // Handler to send favorite message as prompt
+  const handleSendFavoritePrompt = async (content: string) => {
+    if (!content) return;
+    // Set input to favorite content and submit
+    chat.setInput(content);
+    // Simulate form submit
+    const fakeEvent = {
+      preventDefault: () => {},
+    } as FormEvent<HTMLFormElement>;
+    await sendMessage(fakeEvent);
+  };
+
   return (
     <div className="">
       <div className="flex relative z-50 bg-background items-center">
@@ -650,23 +667,12 @@ export function ChatWindow(props: {
           </p>
         </div>
         <div className=" w-full justify-end items-center flex  gap-2.5 z-50">
-          {/* <History
-            history={history}
-            onDropdownOpen={fetchHistory}
-            onHistoryUpdate={refreshHistory}
-            loading={historyLoading}
-          /> */}
-          {/* <BookMark
-            bookmarks={bookmarks}
-            onDropdownOpen={fetchBookMarks}
-            onBookMarkUpdate={refreshBookMarks}
-            loading={bookMarkLoading}
-          /> */}
           <Favorites
             favorites={favorites}
             onDropdownOpen={fetchFavorites}
             onFavoriteUpdate={refreshFavorites}
             loading={favoriteLoading}
+            onSendFavorite={handleSendFavoritePrompt}
           />
           <SuggestedPrompts />
           <Link href="/langchain-chat/chat">
@@ -727,12 +733,13 @@ export function ChatWindow(props: {
           ) : (
             <ChatMessages
               aiEmoji={props.emoji}
-              messages={chat.messages}
+              messages={chat.messages.map((msg: any) => ({
+                ...msg,
+                createdAt: msg.createdAt ? new Date(msg.createdAt) : new Date(),
+              }))}
               emptyStateComponent={props.emptyStateComponent}
               sourcesForMessages={sourcesForMessages}
               onUpdateMessage={handleUpdateMessage}
-              // setBookmarks={setBookmarks}
-              // setFavorites={setFavorites}
             />
           )
         }

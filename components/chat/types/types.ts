@@ -44,4 +44,5 @@ export interface AISettings {
   status: "active" | "inactive";
   id: string;
   tokens_limit: string;
+  default: boolean;
 }
