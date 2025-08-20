@@ -2,6 +2,7 @@
 
 import { auth } from "@/auth";
 import { postgrest } from "@/lib/postgrest";
+import { v4 as uuidv4 } from "uuid";
 
 export async function getChatHistory(chatGroup: string) {
   const session = await auth();
@@ -13,7 +14,7 @@ export async function getChatHistory(chatGroup: string) {
       .eq("user_id", userId)
       .eq("chat_group", chatGroup)
       .eq("status", "active")
-      .order("createdAt", { ascending: true });
+      .order("createdAt", { ascending: false });
 
     if (error) throw error;
     return data;
@@ -29,13 +30,12 @@ export async function getChatBookMarks(chatGroup: string) {
     const { data, error } = await postgrest
       .asAdmin()
       .from("message")
-      .select("id,chatId,content,createdAt,assistantId")
+      .select("id,chatId,content,createdAt,assistantId,prompt_uuid")
       .eq("user_id", userId)
       .eq("chat_group", chatGroup)
       .eq("bookmark", true)
-      .order("createdAt", { ascending: true });
+      .order("createdAt", { ascending: false });
     if (error) throw error;
-    console.log("book------------", data);
 
     return data;
   } catch (error) {
@@ -55,7 +55,7 @@ export async function getChatFavorites(chatGroup: string) {
       .eq("chat_group", chatGroup)
       .eq("favorite", true)
 
-      .order("createdAt", { ascending: true });
+      .order("createdAt", { ascending: false });
 
     if (error) throw error;
 
@@ -81,6 +81,63 @@ export async function createChat(payload) {
     if (error) throw error;
     return { data, success: true };
   } catch (error) {
+    throw error;
+  }
+}
+
+export async function createNewChatSession() {
+  const session = await auth();
+  try {
+    const newChatId = uuidv4();
+    const initialMessageId = uuidv4();
+
+    // Create the chat first
+    const { data, error } = await postgrest.from("chat").insert({
+      id: newChatId,
+      title: "New Chat",
+      chat_group: "LangStarter",
+      status: "active",
+      user_id: session?.user?.user_catalog_id,
+      createdAt: new Date().toISOString(),
+      business_number: session?.user?.business_number,
+      created_user_id: session?.user?.user_catalog_id,
+      business_name: session?.user?.business_name,
+      created_user_name: session?.user?.user_name,
+      user_email: session?.user?.user_email,
+      for_business_number: session?.user?.for_business_number,
+      for_business_name: session?.user?.for_business_name,
+    });
+
+    if (error) throw error;
+
+    // Save initial assistant message
+    const initialMessage = {
+      id: initialMessageId,
+      chatId: newChatId,
+      role: "assistant",
+      content: `Hello ${session?.user?.user_name}! How can I help you today?`,
+      chat_group: "LangStarter",
+      status: "active",
+      user_id: session?.user?.user_catalog_id,
+      createdAt: new Date().toISOString(),
+      isLike: false,
+      bookmark: false,
+      favorite: false,
+    };
+
+    const { error: messageError } = await postgrest
+      .asAdmin()
+      .from("message")
+      .insert(initialMessage);
+
+    if (messageError) {
+      console.error("Failed to save initial message:", messageError);
+      // Don't throw here as the chat was already created successfully
+    }
+
+    return { chatId: newChatId, success: true };
+  } catch (error) {
+    console.error("Failed to create new chat session:", error);
     throw error;
   }
 }
@@ -117,6 +174,25 @@ export async function getMessagesByChatId(chatId: string) {
   }
 }
 
+export async function getMessagesByPromptUuid(promptUuid: string) {
+  const session = await auth();
+  try {
+    const { data, error } = await postgrest
+      .asAdmin()
+      .from("message")
+      .select("*")
+      .eq("prompt_uuid", promptUuid)
+      .eq("user_id", session?.user?.user_catalog_id)
+      .order("createdAt", { ascending: true });
+
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error("Failed to get messages by prompt_uuid:", error);
+    throw error;
+  }
+}
+
 export async function deleteChat(id: string) {
   try {
     const { error } = await postgrest
@@ -131,6 +207,44 @@ export async function deleteChat(id: string) {
     return { success: true };
   } catch (error) {
     console.error("Error deleting chat:", error);
+    throw error;
+  }
+}
+
+export async function removeFavorite(id: string) {
+  try {
+    const { error } = await postgrest
+      .asAdmin()
+      .from("message")
+      .update({ favorite: false })
+      .eq("id", id);
+
+    if (error) {
+      throw new Error("Failed to remove favorite");
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error removing favorite:", error);
+    throw error;
+  }
+}
+
+export async function removeBookMark(id: string) {
+  try {
+    const { error } = await postgrest
+      .asAdmin()
+      .from("message")
+      .update({ bookmark: false })
+      .eq("id", id);
+
+    if (error) {
+      throw new Error("Failed to remove favorite");
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error removing favorite:", error);
     throw error;
   }
 }

@@ -10,7 +10,7 @@ export function ChatLayout(props: { content: ReactNode; footer: ReactNode }) {
         contentClassName="py-8 px-2"
         content={props.content}
         footer={
-          <div className="sticky  bottom-8 px-2">
+          <div className="sticky bottom-0 px-2 pb-2">
             <ScrollToBottom className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4" />
             {props.footer}
           </div>

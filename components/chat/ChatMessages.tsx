@@ -14,11 +14,12 @@ type Message = {
 
 export const ChatMessages = React.memo(function ChatMessages(props: {
   messages: Message[];
-  emptyStateComponent: ReactNode;
   sourcesForMessages: Record<string, any>;
   aiEmoji?: string;
   className?: string;
   onUpdateMessage: (messageId: string, updates: Partial<Message>) => void;
+  onBookmarkUpdate?: () => void;
+  onFavoriteUpdate?: () => void;
 }) {
   // Helper function to check if JSON is complete and valid
   const isCompleteJSON = useCallback((content: string) => {
@@ -146,8 +147,8 @@ export const ChatMessages = React.memo(function ChatMessages(props: {
             analyticCardWithFileApi={analyticCardWithFileApi}
             table={table}
             messages={props.messages}
-            // onBookmarkUpdate={handleBookmarkUpdate}
-            // onFavoriteUpdate={handleFavoriteUpdate}
+            onBookmarkUpdate={props.onBookmarkUpdate}
+            onFavoriteUpdate={props.onFavoriteUpdate}
           />
         );
       })}

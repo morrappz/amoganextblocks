@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import {
   deleteChat,
   getChatBookMarks,
+  removeBookMark,
 } from "@/app/(authenticated)/langchain-chat/lib/actions";
 
 import React from "react";
@@ -23,6 +24,7 @@ export interface Props {
   chatId: string;
   content: string;
   createdAt: string;
+  prompt_uuid: string;
 }
 
 const BookMark = ({
@@ -30,11 +32,13 @@ const BookMark = ({
   onDropdownOpen,
   onBookMarkUpdate,
   loading,
+  onBookmarkClick,
 }: {
   bookmarks: Props[];
   onDropdownOpen: () => void;
   onBookMarkUpdate: () => void;
   loading: boolean;
+  onBookmarkClick?: (promptUuid: string) => void;
 }) => {
   const handleDelete = async (id: string, event: React.MouseEvent) => {
     // Prevent dropdown from closing when clicking delete
@@ -42,7 +46,7 @@ const BookMark = ({
     event.preventDefault();
 
     try {
-      await deleteChat(id);
+      await removeBookMark(id);
       onBookMarkUpdate();
       toast.success("Bookmark removed successfully");
     } catch (error) {
@@ -86,18 +90,21 @@ const BookMark = ({
                   }}
                 >
                   <div className="flex justify-between w-full items-center">
-                    <div className="overflow-ellipsis ">
-                      <Link href={`/langchain-chat/chat/${item.chatId}`}>
-                        <p className="max-w-[90%] overflow-ellipsis line-clamp-1">
+                    <div
+                      className="overflow-ellipsis cursor-pointer flex-1"
+                      onClick={() => onBookmarkClick?.(item.prompt_uuid)}
+                    >
+                      <>
+                        <p className="overflow-ellipsis line-clamp-2 break-all">
                           {item.content}
                         </p>
                         <p>{formatDate(item.createdAt)}</p>
-                      </Link>
+                      </>
                     </div>
                     <div className="hover:bg-red-100 hover:scale-110 rounded-md p-2.5">
                       <Trash
-                        // onClick={(e) => handleDelete(item.id, e)}
-                        className="w-4 cursor-not-allowed h-4  text-red-500"
+                        onClick={(e) => handleDelete(item.id, e)}
+                        className="w-4 cursor-pointer h-4  text-red-500"
                       />
                     </div>
                   </div>
