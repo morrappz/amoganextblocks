@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import {
   deleteChat,
   getChatFavorites,
+  removeFavorite,
 } from "@/app/(authenticated)/langchain-chat/lib/actions";
 import React from "react";
 
@@ -40,12 +41,12 @@ const Favorites = ({
 }) => {
   const handleDelete = async (id: string) => {
     try {
-      await deleteChat(id);
+      await removeFavorite(id);
       onFavoriteUpdate();
-      toast.success("Chat deleted successfully");
+      toast.success("Favorite deleted successfully");
     } catch (error) {
-      toast.error(`Error deleting chat ${error}`);
-      throw error;
+      console.error("Error deleting favorite:", error);
+      toast.error("Failed to delete favorite");
     }
   };
 
@@ -77,19 +78,21 @@ const Favorites = ({
                 <DropdownMenuItem
                   className="bg-muted  overflow-y-auto mb-2 cursor-pointer"
                   key={item.id}
-                  onClick={() => onSendFavorite(item.content)}
                 >
                   <div className="flex justify-between w-full items-center">
                     <div className="overflow-ellipsis ">
-                      <p className="max-w-[90%] overflow-ellipsis line-clamp-1">
+                      <p
+                        onClick={() => onSendFavorite(item.content)}
+                        className=" overflow-ellipsis line-clamp-2"
+                      >
                         {item.content}
                       </p>
                       <p>{formatDate(item.createdAt)}</p>
                     </div>
                     <div className="hover:bg-red-100 rounded-md p-2.5">
                       <Trash
-                        // onClick={() => handleDelete(item.id)}
-                        className="w-5 cursor-not-allowed h-5 text-red-500"
+                        onClick={() => handleDelete(item.id)}
+                        className="w-5 cursor-pointer h-5 text-red-500"
                       />
                     </div>
                   </div>

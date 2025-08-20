@@ -69,10 +69,31 @@ export const ChatMessageBubble = React.memo(function ChatMessageBubble(
   const { data: session } = useSession();
 
   const handleBookmark = () => {
-    onUpdateMessage(message.id, {
-      bookmark: !message.bookmark,
-    });
-    props.onBookmarkUpdate?.();
+    if (message.role === "assistant" && Array.isArray(props.messages)) {
+      const idx = props.messages.findIndex((m) => m.id === message.id);
+      if (idx > 0) {
+        // Find the previous user message
+        const prevUserMsg = props.messages
+          .slice(0, idx)
+          .reverse()
+          .find((m) => m.role === "user");
+        if (prevUserMsg) {
+          // Get the latest bookmark value from props.messages
+          const latestPrompt = props.messages.find(
+            (m) => m.id === prevUserMsg.id
+          );
+          const isBookmarked = latestPrompt?.bookmark ?? false;
+          onUpdateMessage(prevUserMsg.id, { bookmark: !isBookmarked });
+          props.onBookmarkUpdate?.();
+          return;
+        }
+      }
+      toast.error("No prompt found to bookmark");
+    } else {
+      // For user messages, update their own bookmark status
+      onUpdateMessage(message.id, { bookmark: !message.bookmark });
+      props.onBookmarkUpdate?.();
+    }
   };
 
   // Custom favorite logic: if assistant, favorite the previous user prompt
@@ -90,11 +111,26 @@ export const ChatMessageBubble = React.memo(function ChatMessageBubble(
     return message.favorite ?? false;
   };
 
-  const handleFavorite = async () => {
+  // Custom bookmark logic: if assistant, show the previous user prompt's bookmark status
+  const getPromptBookmarkStatus = () => {
     if (message.role === "assistant" && Array.isArray(props.messages)) {
       const idx = props.messages.findIndex((m) => m.id === message.id);
       if (idx > 0) {
-        // Find the previous user message's latest value from props.messages
+        const prevUserMsg = props.messages
+          .slice(0, idx)
+          .reverse()
+          .find((m) => m.role === "user");
+        return prevUserMsg?.bookmark ?? false;
+      }
+    }
+    return message.bookmark ?? false;
+  };
+
+  const handleFavorite = () => {
+    if (message.role === "assistant" && Array.isArray(props.messages)) {
+      const idx = props.messages.findIndex((m) => m.id === message.id);
+      if (idx > 0) {
+        // Find the previous user message
         const prevUserMsg = props.messages
           .slice(0, idx)
           .reverse()
@@ -105,33 +141,16 @@ export const ChatMessageBubble = React.memo(function ChatMessageBubble(
             (m) => m.id === prevUserMsg.id
           );
           const isFav = latestPrompt?.favorite ?? false;
-          try {
-            await updateMessageStatus({
-              messageId: prevUserMsg.id,
-              favorite: !isFav,
-            });
-            onUpdateMessage(prevUserMsg.id, { favorite: !isFav });
-            toast.success(!isFav ? "Prompt favorited" : "Prompt unfavorited");
-            props.onFavoriteUpdate?.(); // trigger parent refresh
-          } catch (error) {
-            toast.error("Failed to save favorite status");
-          }
+          onUpdateMessage(prevUserMsg.id, { favorite: !isFav });
+          props.onFavoriteUpdate?.();
           return;
         }
       }
       toast.error("No prompt found to favorite");
     } else {
-      // Get the latest favorite value for the current message
-      const latestMsg = props.messages.find((m) => m.id === message.id);
-      const isFav = latestMsg?.favorite ?? false;
-      try {
-        await updateMessageStatus({ messageId: message.id, favorite: !isFav });
-        onUpdateMessage(message.id, { favorite: !isFav });
-        toast.success(!isFav ? "Prompt favorited" : "Prompt unfavorited");
-        props.onFavoriteUpdate?.();
-      } catch (error) {
-        toast.error("Failed to save favorite status");
-      }
+      // For user messages, update their own favorite status
+      onUpdateMessage(message.id, { favorite: !message.favorite });
+      props.onFavoriteUpdate?.();
     }
   };
 
@@ -197,7 +216,7 @@ export const ChatMessageBubble = React.memo(function ChatMessageBubble(
                 <Bookmark
                   onClick={handleBookmark}
                   className={`h-5 w-5 ${
-                    message.bookmark ? "fill-primary text-primary" : ""
+                    getPromptBookmarkStatus() ? "fill-primary text-primary" : ""
                   } cursor-pointer hover:text-primary text-muted-foreground`}
                 />
 
