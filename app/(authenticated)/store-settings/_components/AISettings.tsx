@@ -85,7 +85,7 @@ const AISettings = () => {
         </Link>
       </div>
       <div>
-        {data[0] === null && !isLoading && (
+        {data && data[0] === null && !isLoading && (
           <div>
             <h1>No Data Found</h1>
           </div>

@@ -13,6 +13,7 @@ const ChatName = ({ id }: { id?: string }) => {
   const [editingTitle, setEditingTitle] = React.useState(false);
   const [editedTitle, setEditedTitle] = React.useState("");
   const [bookmark, setBookmark] = React.useState(false);
+  const [shareToken, setShareToken] = React.useState("");
 
   React.useEffect(() => {
     const getChatTitle = async () => {
@@ -20,6 +21,7 @@ const ChatName = ({ id }: { id?: string }) => {
         const chatTitle = await fetchChatTitle(id);
         setTitle(chatTitle.title);
         setBookmark(chatTitle.bookmark);
+        setShareToken(chatTitle.share_token || "");
       }
     };
     getChatTitle();
@@ -54,12 +56,12 @@ const ChatName = ({ id }: { id?: string }) => {
   };
 
   const handleCopy = () => {
-    if (!id) {
-      toast.error("Chat ID is not available");
+    if (!id || !shareToken) {
+      toast.error("Id is not available");
       return;
     }
     navigator.clipboard.writeText(
-      `${process.env.NEXT_PUBLIC_APP_URL}/langchain-chat/chat/${id}`
+      `${process.env.NEXT_PUBLIC_APP_URL}/langchain-chat/share/${shareToken}`
     );
     toast.success("Chat Url copied to clipboard");
   };
@@ -68,7 +70,7 @@ const ChatName = ({ id }: { id?: string }) => {
     <div className="flex items-center gap-2.5">
       <Input
         type="text"
-        value={`${editedTitle ? editedTitle : title}`}
+        value={`${editedTitle ? editedTitle : title || "New Chat"}`}
         className={`border-0 w-fit max-w-[50% ] ${
           editingTitle ? "border border-primary" : ""
         }`}

@@ -91,7 +91,7 @@ export async function createNewChatSession() {
     const newChatId = uuidv4();
     const initialMessageId = uuidv4();
     const shareToken = uuidv4();
-    const shareUrl = `${process.env.NEXT_PUBLIC_APP_URL}/chat/${newChatId}?share=${shareToken}`;
+    const shareUrl = `${process.env.NEXT_PUBLIC_APP_URL}/share/${shareToken}`;
 
     // Create the chat first
     const { data, error } = await postgrest.from("chat").insert({
@@ -167,7 +167,7 @@ export async function getMessagesByChatId(chatId: string) {
       .from("message")
       .select("*")
       .eq("chatId", chatId)
-      .eq("user_id", session?.user?.user_catalog_id)
+      // .eq("user_id", session?.user?.user_catalog_id)
       .order("createdAt", { ascending: true });
 
     if (error) throw error;
@@ -369,7 +369,7 @@ export async function fetchChatTitle(id?: string) {
   try {
     const { data, error } = await postgrest
       .from("chat")
-      .select("title,bookmark")
+      .select("title,bookmark,createdAt,share_token")
       .eq("id", id)
       .eq("user_id", session?.user?.user_catalog_id)
       .single();
@@ -416,6 +416,23 @@ export async function getChatBookMarks(chatGroup: string) {
     return data;
   } catch (error) {
     console.error("Failed to fetch chat bookmarks:", error);
+    throw error;
+  }
+}
+
+// chat share
+
+export async function getChatByShareId(id: string) {
+  try {
+    const { data, error } = await postgrest
+      .from("chat")
+      .select("id")
+      .eq("share_token", id)
+      .single();
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error("Failed to Fetch Chat By Share Id:", error);
     throw error;
   }
 }
