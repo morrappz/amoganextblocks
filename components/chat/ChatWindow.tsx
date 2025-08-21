@@ -52,6 +52,7 @@ import {
   createNewChatSession,
   getMessagesByPromptUuid,
   getChatImportant,
+  getChatByShareId,
 } from "@/app/(authenticated)/langchain-chat/lib/actions";
 import { useSession } from "next-auth/react";
 import { v4 as uuidv4 } from "uuid";
@@ -152,6 +153,7 @@ export function ChatWindow(props: {
   showIngestForm?: boolean;
   showIntermediateStepsToggle?: boolean;
   chatId?: string;
+  shareId?: string;
 }) {
   const [showIntermediateSteps, setShowIntermediateSteps] = useState(
     !!props.showIntermediateStepsToggle
@@ -166,10 +168,13 @@ export function ChatWindow(props: {
     null
   );
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
+  const [isSharedChat, setIsSharedChat] = useState(!!props.shareId);
+  const [sharedMessages, setSharedMessages] = useState<Message[]>([]);
   const msgId = uuidv4();
   const router = useRouter();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const chatRef = useRef<any>(null);
 
   const [sourcesForMessages, setSourcesForMessages] = useState<
     Record<string, any>
@@ -339,7 +344,7 @@ export function ChatWindow(props: {
                 "Content-Type": "application/json",
               },
               body: JSON.stringify({
-                messages: chat.messages,
+                messages: chatRef.current?.messages || [],
                 language: selectedLanguage,
                 aiModel: selectedAIModel,
               }),
@@ -392,6 +397,11 @@ export function ChatWindow(props: {
     },
     generateId: () => uuidv4(),
   });
+
+  // Update the ref whenever chat changes
+  useEffect(() => {
+    chatRef.current = chat;
+  }, [chat]);
 
   // Auto-scroll to bottom when new messages arrive (but not for initial load)
   useEffect(() => {
@@ -488,53 +498,100 @@ export function ChatWindow(props: {
     }
   };
   // Load existing messages when component mounts or chatId changes
-  const loadMessages = useCallback(async () => {
-    setMessagesLoaded(false); // Reset loading state
+  const loadMessages = useCallback(
+    async (id, isSharedChat = false) => {
+      setMessagesLoaded(false); // Reset loading state
 
-    if (props.chatId && session?.user?.user_catalog_id) {
+      // Allow loading if we have an ID and either user is logged in OR it's a shared chat
+      if (id && (session?.user?.user_catalog_id || isSharedChat)) {
+        try {
+          const existingMessages = await getMessagesByChatId(id);
+          if (existingMessages && existingMessages.length > 0) {
+            // Convert database messages to useChat format
+            const formattedMessages: Message[] = existingMessages.map(
+              (msg: any) => ({
+                id: msg.id,
+                role: msg.role || "user",
+                content: msg.content,
+                createdAt: msg.createdAt ? new Date(msg.createdAt) : new Date(),
+                isLike: msg.isLike,
+                bookmark: msg.bookmark,
+                important: msg.important,
+                favorite: msg.favorite,
+              })
+            );
+            chatRef.current?.setMessages(formattedMessages);
+          } else {
+            // No messages found, clear the chat
+            chatRef.current?.setMessages([]);
+          }
+        } catch (error) {
+          console.error("Failed to load messages:", error);
+          chatRef.current?.setMessages([]); // Clear messages on error
+        }
+      } else {
+        // No chatId provided (new chat), clear everything
+        chatRef.current?.setMessages([]);
+        // Clear sources and reset other states
+        setSourcesForMessages({});
+      }
+
+      setMessagesLoaded(true);
+      // Set initial load to false after first load
+      setTimeout(() => setIsInitialLoad(false), 100);
+    },
+    [session?.user?.user_catalog_id]
+  );
+
+  // Effect for loading shared chat
+  useEffect(() => {
+    if (!props.shareId) return;
+
+    const loadSharedChat = async () => {
       try {
-        const existingMessages = await getMessagesByChatId(props?.chatId);
-        if (existingMessages && existingMessages.length > 0) {
-          // Convert database messages to useChat format
-          const formattedMessages: Message[] = existingMessages.map(
-            (msg: any) => ({
-              id: msg.id,
-              role: msg.role || "user",
-              content: msg.content,
-              createdAt: msg.createdAt ? new Date(msg.createdAt) : new Date(),
-              isLike: msg.isLike,
-              bookmark: msg.bookmark,
-              important: msg.important,
-              favorite: msg.favorite,
-            })
-          );
-          chat.setMessages(formattedMessages);
+        const chatData = await getChatByShareId(props.shareId!); // Non-null assertion since we check above
+        if (chatData?.id) {
+          const existingMessages = await getMessagesByChatId(chatData.id);
+          if (existingMessages && existingMessages.length > 0) {
+            // Convert and store shared messages
+            const formattedMessages: Message[] = existingMessages.map(
+              (msg: any) => ({
+                id: msg.id,
+                role: msg.role || "user",
+                content: msg.content,
+                createdAt: msg.createdAt ? new Date(msg.createdAt) : new Date(),
+                isLike: msg.isLike,
+                bookmark: msg.bookmark,
+                important: msg.important,
+                favorite: msg.favorite,
+              })
+            );
+            setSharedMessages(formattedMessages);
+            chatRef.current?.setMessages(formattedMessages);
+          }
+          console.log("Shared chat loaded:", chatData);
         } else {
-          // No messages found, clear the chat
-          chat.setMessages([]);
+          toast.error("No chat found for this share ID");
         }
       } catch (error) {
-        console.error("Failed to load messages:", error);
-        chat.setMessages([]); // Clear messages on error
+        console.error("Error loading shared chat:", error);
+        toast.error("Failed to load shared chat");
       }
-    } else {
-      // No chatId provided (new chat), clear everything
-      chat.setMessages([]);
-      // Clear sources and reset other states
-      setSourcesForMessages({});
-    }
+      setMessagesLoaded(true);
+      setTimeout(() => setIsInitialLoad(false), 100);
+    };
 
-    setMessagesLoaded(true);
-    // Set initial load to false after first load
-    setTimeout(() => setIsInitialLoad(false), 100);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [props.chatId, session?.user?.user_catalog_id]);
-
-  useEffect(() => {
-    loadMessages();
-    // Reset initial load state when chatId changes
+    loadSharedChat();
     setIsInitialLoad(true);
-  }, [loadMessages]);
+  }, [props.shareId]);
+
+  // Effect for loading regular chat
+  useEffect(() => {
+    if (props.shareId || !props.chatId) return; // Skip if it's a shared chat or no chatId
+
+    loadMessages(props.chatId);
+    setIsInitialLoad(true);
+  }, [props.chatId, loadMessages, props.shareId]);
 
   const createNewChatAndRedirect = async (userMessage: string) => {
     try {
@@ -542,7 +599,7 @@ export function ChatWindow(props: {
 
       await createChat({
         id: newChatId,
-        title: userMessage.slice(0, 100), // Limit title length
+        title: "New Chat", // Use "New Chat" instead of user message
         chat_group: "LangStarter",
         status: "active",
         user_id: session?.user?.user_catalog_id,
@@ -567,6 +624,51 @@ export function ChatWindow(props: {
     } catch (error) {
       console.error("Failed to create chat:", error);
       toast.error("Failed to create new chat");
+      throw error;
+    }
+  };
+
+  const copySharedMessagesToNewChat = async (newChatId: string) => {
+    try {
+      const savedMessages: Message[] = [];
+      let currentPromptUuid = uuidv4();
+
+      for (let i = 0; i < sharedMessages.length; i++) {
+        const msg = sharedMessages[i];
+        const newMessageId = uuidv4();
+
+        // Use same prompt_uuid for user-assistant pairs
+        if (msg.role === "user") {
+          currentPromptUuid = uuidv4();
+        }
+
+        // Save shared message to the new chat with new ID
+        await saveMessage({
+          id: newMessageId,
+          chatId: newChatId,
+          role: msg.role,
+          content: msg.content,
+          chat_group: "LangStarter",
+          status: "active",
+          user_id: session?.user?.user_catalog_id || "",
+          createdAt: new Date().toISOString(),
+          isLike: false,
+          bookmark: false,
+          important: false,
+          favorite: false,
+          prompt_uuid: currentPromptUuid,
+        });
+
+        // Keep the message for UI with new ID
+        savedMessages.push({
+          ...msg,
+          id: newMessageId,
+        });
+      }
+
+      return savedMessages;
+    } catch (error) {
+      console.error("Failed to copy shared messages:", error);
       throw error;
     }
   };
@@ -624,8 +726,31 @@ export function ChatWindow(props: {
 
     let chatId = currentChatId;
 
-    // Create new chat if this is the first message
-    if (!chatId) {
+    // Handle shared chat scenario - create new chat and copy shared messages
+    if (!chatId && isSharedChat && sharedMessages.length > 0) {
+      try {
+        // Create new chat for the user
+        chatId = await createNewChatAndRedirect(userMessage);
+        setCurrentChatId(chatId);
+
+        // Copy all shared messages to the new chat
+        const copiedMessages = await copySharedMessagesToNewChat(chatId);
+
+        // Update the UI with copied messages
+        chatRef.current?.setMessages(copiedMessages);
+
+        // Mark as no longer a shared chat
+        setIsSharedChat(false);
+
+        toast.success("Conversation copied to your chat history");
+      } catch (error) {
+        console.error("Failed to copy shared chat:", error);
+        toast.error("Failed to create your chat session");
+        return;
+      }
+    }
+    // Create new chat if this is the first message (normal scenario)
+    else if (!chatId) {
       try {
         chatId = await createNewChatAndRedirect(userMessage);
         setCurrentChatId(chatId);
