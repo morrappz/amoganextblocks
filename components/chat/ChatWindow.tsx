@@ -80,6 +80,7 @@ import { AISettings } from "./types/types";
 import ChatName from "./ChatName";
 import Important from "./MenuItems/Important";
 import ChatBookMarks from "./MenuItems/ChatBookMarks";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 type Message = {
   id: string;
@@ -185,6 +186,7 @@ export function ChatWindow(props: {
   const [bookmarkClickLoading, setBookmarkClickLoading] = useState(false);
   const usageRef = useRef<any>(null);
   const promptId = uuidv4();
+  const isMobile = useIsMobile();
 
   // Fetch history when dropdown opens
   const fetchHistory = async () => {
@@ -296,8 +298,6 @@ export function ChatWindow(props: {
       aiModel: selectedAIModel,
     },
     onResponse(response) {
-      const usageHeader = response.headers.get("x-usage");
-      usageRef.current = usageHeader ? JSON.parse(usageHeader) : null;
       const sourcesHeader = response.headers.get("x-sources");
       const sources = sourcesHeader
         ? JSON.parse(Buffer.from(sourcesHeader, "base64").toString("utf8"))
@@ -330,6 +330,29 @@ export function ChatWindow(props: {
                 : uuidv4();
           }
 
+          // Fetch usage data separately
+          let usageData = null;
+          try {
+            const usageResponse = await fetch(`${props.endpoint}/usage`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                messages: chat.messages,
+                language: selectedLanguage,
+                aiModel: selectedAIModel,
+              }),
+            });
+
+            if (usageResponse.ok) {
+              const usageResult = await usageResponse.json();
+              usageData = usageResult.usage;
+            }
+          } catch (error) {
+            console.warn("Failed to fetch usage data:", error);
+          }
+
           // Save the original message content to the database
           await saveMessage({
             id: message.id || `msg-${Date.now()}`,
@@ -344,9 +367,9 @@ export function ChatWindow(props: {
             bookmark: false,
             important: false,
             favorite: false,
-            prompt_tokens: usageRef.current?.input_tokens,
-            completion_tokens: usageRef.current?.output_tokens,
-            total_tokens: usageRef.current?.total_tokens,
+            prompt_tokens: usageData?.input_tokens,
+            completion_tokens: usageData?.output_tokens,
+            total_tokens: usageData?.total_tokens,
             prompt_uuid: promptId,
           });
           // handleHistory();
@@ -855,11 +878,11 @@ export function ChatWindow(props: {
     <div className="h-full flex flex-col relative">
       {/* Header with icons - sticky at top of chat container */}
       <div className="sticky top-0 z-40 bg-background border-b flex-shrink-0">
-        <div className="flex items-center justify-between px-4 py-3">
-          <div className=" px-3 py-1">
+        <div className="flex flex-col md:flex-row items-center justify-between px-2 sm:px-4 py-2 sm:py-3">
+          <div className="px-1 sm:px-3 py-1 min-w-0 flex-1">
             <ChatName id={props?.chatId} />
           </div>
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-1 sm:gap-2.5 flex-shrink-0">
             <Favorites
               favorites={favorites}
               onDropdownOpen={fetchFavorites}
@@ -868,12 +891,12 @@ export function ChatWindow(props: {
               onSendFavorite={handleSendFavoritePrompt}
             />
             <SuggestedPrompts />
-            <button onClick={handleNewChatClick} className="cursor-pointer">
-              <Plus className=" text-muted-foreground" />
+            <button onClick={handleNewChatClick} className="cursor-pointer p-1">
+              <Plus className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" />
             </button>
             <DropdownMenu>
-              <DropdownMenuTrigger>
-                <Ellipsis className="w-5 h-5 text-muted-foreground" />
+              <DropdownMenuTrigger className="p-1">
+                <Ellipsis className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" />
               </DropdownMenuTrigger>
               <DropdownMenuContent>
                 <DropdownMenuGroup>
@@ -932,19 +955,10 @@ export function ChatWindow(props: {
       </div>
 
       {/* Messages area - scrollable middle section */}
-      <div
-        className="flex-1 overflow-hidden relative"
-        style={{
-          paddingBottom: "80px" /* Space for fixed input */,
-        }}
-      >
+      <div className="flex-1 overflow-hidden relative pb-16 sm:pb-20">
         <div
           ref={messagesContainerRef}
-          className="h-full px-4 py-4 overflow-y-auto hide-scrollbar"
-          style={{
-            scrollbarWidth: "none" /* Firefox */,
-            msOverflowStyle: "none" /* Internet Explorer 10+ */,
-          }}
+          className="h-full px-2 sm:px-4 py-2 sm:py-4 overflow-y-auto hide-scrollbar"
           onScroll={handleScroll}
         >
           <ChatMessages
@@ -964,7 +978,7 @@ export function ChatWindow(props: {
 
         {/* Scroll to bottom button */}
         {showScrollToBottom && (
-          <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2 z-20">
+          <div className="absolute bottom-16 sm:bottom-20 left-1/2 transform -translate-x-1/2 z-20">
             <Button
               variant="outline"
               size="sm"
@@ -972,26 +986,22 @@ export function ChatWindow(props: {
               className="shadow-lg"
             >
               <ArrowDown className="w-4 h-4 mr-1" />
-              Scroll to bottom
+              <span className="hidden sm:inline">Scroll to bottom</span>
+              <span className="sm:hidden">Scroll</span>
             </Button>
           </div>
         )}
-
-        {/* Input area - moved outside to be fixed at viewport bottom */}
       </div>
 
-      {/* Input area - fixed at bottom of viewport but aligned with content */}
-      <div className="fixed bottom-0 left-0 right-0 z-50">
-        <div
-          className="bg-background"
-          style={{
-            marginLeft: "var(--sidebar-width, 240px)",
-            paddingLeft: "1rem",
-            paddingRight: "1rem",
-            paddingTop: "0.75rem",
-            paddingBottom: "0.75rem",
-          }}
-        >
+      {/* Input area - fixed at bottom with responsive positioning */}
+      <div
+        className={cn(
+          "fixed bottom-0 z-50 bg-background border-t",
+          isMobile ? "left-0 right-0" : "right-0",
+          !isMobile && "left-[var(--sidebar-width,240px)]"
+        )}
+      >
+        <div className="p-2 sm:p-4">
           <ChatInput
             value={chat.input}
             onChange={chat.handleInputChange}
@@ -1011,7 +1021,8 @@ export function ChatWindow(props: {
                     disabled={chat.messages.length !== 0}
                   >
                     <Paperclip className="size-4" />
-                    <span>Upload document</span>
+                    <span className="hidden sm:inline">Upload document</span>
+                    <span className="sm:hidden">Upload</span>
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
@@ -1035,8 +1046,17 @@ export function ChatWindow(props: {
                   disabled={chat.isLoading || intermediateStepsLoading}
                   onCheckedChange={(e) => setShowIntermediateSteps(!!e)}
                 />
-                <label htmlFor="show_intermediate_steps" className="text-sm">
+                <label
+                  htmlFor="show_intermediate_steps"
+                  className="text-sm hidden sm:inline"
+                >
                   Show intermediate steps
+                </label>
+                <label
+                  htmlFor="show_intermediate_steps"
+                  className="text-sm sm:hidden"
+                >
+                  Steps
                 </label>
               </div>
             )}

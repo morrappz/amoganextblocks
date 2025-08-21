@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Message as VercelChatMessage, StreamingTextResponse } from "ai";
+import { Message as VercelChatMessage } from "ai";
 
 import { ChatOpenAI } from "@langchain/openai";
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
@@ -8,10 +8,6 @@ import { ChatMistralAI } from "@langchain/mistralai";
 import { ChatDeepSeek } from "@langchain/deepseek";
 import { ChatAnthropic } from "@langchain/anthropic";
 import { PromptTemplate } from "@langchain/core/prompts";
-import {
-  HttpResponseOutputParser,
-  StructuredOutputParser,
-} from "langchain/output_parsers";
 
 export const runtime = "edge";
 
@@ -20,10 +16,8 @@ const formatMessage = (message: VercelChatMessage) => {
 };
 
 /**
- * This handler initializes and calls a simple chain with a prompt,
- * chat model, and output parser. See the docs for more information:
- *
- * https://js.langchain.com/docs/guides/expression_language/cookbook#prompttemplate--llm--outputparser
+ * This endpoint calculates usage metadata for a given conversation
+ * without actually generating a response
  */
 export async function POST(req: NextRequest) {
   try {
@@ -40,6 +34,7 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+
     const provider = aiModel?.provider;
     let providerModel;
 
@@ -195,12 +190,6 @@ export async function POST(req: NextRequest) {
 
     const prompt = PromptTemplate.fromTemplate(TEMPLATE);
 
-    /**
-     *
-     * See a full list of supported models at:
-     * https://js.langchain.com/docs/modules/model_io/models/
-     */
-
     const modelsMap = {
       openai: new ChatOpenAI({
         temperature: 0.8,
@@ -231,27 +220,18 @@ export async function POST(req: NextRequest) {
     };
 
     const model = modelsMap[provider];
-    /**
-     * Chat models stream message chunks rather than bytes, so this
-     * output parser handles serialization and byte-encoding.
-     */
-    const outputParser = new HttpResponseOutputParser();
 
-    /**
-     * Can also initialize as:
-     *
-     * import { RunnableSequence } from "@langchain/core/runnables";
-     * const chain = RunnableSequence.from([prompt, model, outputParser]);
-     */
-    const chain = prompt.pipe(model).pipe(outputParser);
-
-    const stream = await chain.stream({
+    // Make a single call to get usage metadata
+    const promptValue = await prompt.invoke({
       chat_history: formattedPreviousMessages.join("\n"),
       input: currentMessageContent,
       language: selectedLanguage,
     });
 
-    return new StreamingTextResponse(stream);
+    const modelResult = await model.invoke(promptValue);
+    const usage = modelResult.usage_metadata;
+
+    return NextResponse.json({ usage });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: e.status ?? 500 });
   }

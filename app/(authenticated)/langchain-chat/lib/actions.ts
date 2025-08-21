@@ -90,6 +90,8 @@ export async function createNewChatSession() {
   try {
     const newChatId = uuidv4();
     const initialMessageId = uuidv4();
+    const shareToken = uuidv4();
+    const shareUrl = `${process.env.NEXT_PUBLIC_APP_URL}/chat/${newChatId}?share=${shareToken}`;
 
     // Create the chat first
     const { data, error } = await postgrest.from("chat").insert({
@@ -106,6 +108,8 @@ export async function createNewChatSession() {
       user_email: session?.user?.user_email,
       for_business_number: session?.user?.for_business_number,
       for_business_name: session?.user?.for_business_name,
+      share_token: shareToken,
+      share_url: shareUrl,
     });
 
     if (error) throw error;
@@ -208,11 +212,11 @@ export async function getMessageById(messageId: string) {
       .select("id,chatId,role,content,prompt_uuid")
       .eq("id", messageId)
       .eq("user_id", session?.user?.user_catalog_id)
-      .single();
+      .maybeSingle();
     if (error) throw error;
     return data;
   } catch (error) {
-    console.error("Failed to get messages by prompt_uuid:", error);
+    console.error("Failed to get message by id:", error);
     throw error;
   }
 }

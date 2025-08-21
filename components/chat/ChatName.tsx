@@ -3,7 +3,7 @@ import {
   fetchChatTitle,
   updateChatTitle,
 } from "@/app/(authenticated)/langchain-chat/lib/actions";
-import { Bookmark, Check, Edit, X } from "lucide-react";
+import { Bookmark, Check, Copy, Edit, X } from "lucide-react";
 import React from "react";
 import { Input } from "../ui/input";
 import { toast } from "sonner";
@@ -53,7 +53,16 @@ const ChatName = ({ id }: { id?: string }) => {
     }
   };
 
-  console.log("bookmark----", bookmark);
+  const handleCopy = () => {
+    if (!id) {
+      toast.error("Chat ID is not available");
+      return;
+    }
+    navigator.clipboard.writeText(
+      `${process.env.NEXT_PUBLIC_APP_URL}/langchain-chat/chat/${id}`
+    );
+    toast.success("Chat Url copied to clipboard");
+  };
 
   return (
     <div className="flex items-center gap-2.5">
@@ -66,7 +75,7 @@ const ChatName = ({ id }: { id?: string }) => {
         readOnly={!editingTitle}
         onChange={(e) => setEditedTitle(e.target.value)}
       />
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2.5">
         {editingTitle ? (
           <div className="flex items-center gap-2">
             <Check
@@ -90,6 +99,10 @@ const ChatName = ({ id }: { id?: string }) => {
             }}
           />
         )}
+        <Copy
+          className="w-5 cursor-pointer h-5 text-muted-foreground"
+          onClick={handleCopy}
+        />
         <Bookmark
           onClick={() => {
             setBookmark(!bookmark);
