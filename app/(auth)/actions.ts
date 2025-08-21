@@ -9,6 +9,7 @@ import { saveUserLogs } from "@/utils/userLogs";
 const authFormSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6),
+  callbackUrl: z.string().optional(),
 });
 
 const authRegisterFormSchema = z.object({
@@ -35,13 +36,21 @@ export const login = async (
     const validatedData = authFormSchema.parse({
       email: formData.email,
       password: formData.password,
+      callbackUrl: formData.callbackUrl,
     });
 
-    await signIn("credentials", {
+    const signInOptions: any = {
       email: validatedData.email,
       password: validatedData.password,
       redirect: false,
-    });
+    };
+
+    // If there's a callback URL, include it in the sign-in options
+    if (validatedData.callbackUrl) {
+      signInOptions.redirectTo = validatedData.callbackUrl;
+    }
+
+    await signIn("credentials", signInOptions);
 
     await saveUserLogs({
       status: "Login Success",

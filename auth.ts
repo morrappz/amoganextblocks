@@ -145,6 +145,19 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           nextUrl.pathname.startsWith(path)
         )
       ) {
+        // Check if there's a callbackUrl parameter
+        const callbackUrl = nextUrl.searchParams.get("callbackUrl");
+        if (callbackUrl) {
+          try {
+            // Validate that the callback URL is safe (same origin or relative)
+            const callback = new URL(callbackUrl);
+            if (callback.origin === nextUrl.origin) {
+              return Response.redirect(new URL(callbackUrl));
+            }
+          } catch {
+            // If URL parsing fails, fall back to default
+          }
+        }
         return Response.redirect(new URL("/role-menu", nextUrl.origin));
       }
 
@@ -188,7 +201,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         ...session,
         user: {
           ...session.user,
-          ...token.user,
+          ...(token.user as any),
           id: token.id as string,
           randomKey: token.randomKey,
         },

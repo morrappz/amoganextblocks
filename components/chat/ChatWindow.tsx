@@ -596,6 +596,8 @@ export function ChatWindow(props: {
   const createNewChatAndRedirect = async (userMessage: string) => {
     try {
       const newChatId = uuidv4();
+      const shareToken = uuidv4();
+      const shareUrl = `${process.env.NEXT_PUBLIC_APP_URL}/share/${shareToken}`;
 
       await createChat({
         id: newChatId,
@@ -604,6 +606,8 @@ export function ChatWindow(props: {
         status: "active",
         user_id: session?.user?.user_catalog_id,
         createdAt: new Date().toISOString(),
+        share_token: shareToken,
+        share_url: shareUrl,
       });
 
       setCurrentChatId(newChatId);

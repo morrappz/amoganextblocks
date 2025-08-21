@@ -19,7 +19,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
 import { Github, Facebook, Loader2 } from "lucide-react";
 import { login, LoginActionState } from "../actions";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 
 const formSchema = z.object({
@@ -40,10 +40,12 @@ const formSchema = z.object({
 export default function SignIn() {
   const [isLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get("callbackUrl");
 
   const [state, formAction, pending] = useActionState<
     LoginActionState,
-    { email: string; password: string }
+    { email: string; password: string; callbackUrl?: string }
   >(login, {
     status: "idle",
   });
@@ -63,9 +65,22 @@ export default function SignIn() {
     } else if (state?.status === "invalid_data") {
       toast.error("Failed validating your submission!");
     } else if (state?.status === "success") {
+      // Check if there's a callback URL to redirect to
+      if (callbackUrl) {
+        try {
+          // Validate that the callback URL is safe (same origin or relative)
+          const url = new URL(callbackUrl);
+          if (url.origin === window.location.origin) {
+            window.location.href = callbackUrl;
+            return;
+          }
+        } catch {
+          // If URL parsing fails, fall back to refresh
+        }
+      }
       router.refresh();
     }
-  }, [state, pending, router]);
+  }, [state, pending, router, callbackUrl]);
 
   return (
     <Card className="p-6">
@@ -80,7 +95,9 @@ export default function SignIn() {
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit((v) =>
-              startTransition(() => formAction(v))
+              startTransition(() =>
+                formAction({ ...v, callbackUrl: callbackUrl || undefined })
+              )
             )}
           >
             <div className="grid gap-2">
