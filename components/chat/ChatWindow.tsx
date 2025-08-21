@@ -51,6 +51,7 @@ import {
   getChatFavorites, // Add this function to your actions
   createNewChatSession,
   getMessagesByPromptUuid,
+  getChatImportant,
 } from "@/app/(authenticated)/langchain-chat/lib/actions";
 import { useSession } from "next-auth/react";
 import { v4 as uuidv4 } from "uuid";
@@ -70,12 +71,15 @@ import { ChatInput } from "./ChatInput";
 
 import { ChatLayout } from "./ChatLayout";
 import History from "./MenuItems/History";
-import BookMark from "./MenuItems/Bookmark";
+import BookMark from "./MenuItems/Important";
 import Favorites from "./MenuItems/Favorites";
 import { ChatMessages } from "./ChatMessages";
 import SuggestedPrompts from "./MenuItems/SuggestedPrompts";
 import Assistants from "./MenuItems/Assistants";
 import { AISettings } from "./types/types";
+import ChatName from "./ChatName";
+import Important from "./MenuItems/Important";
+import ChatBookMarks from "./MenuItems/ChatBookMarks";
 
 type Message = {
   id: string;
@@ -84,6 +88,7 @@ type Message = {
   createdAt: Date;
   isLike?: boolean;
   bookmark?: boolean;
+  important?: boolean;
   favorite?: boolean;
   chart?: any;
 };
@@ -94,7 +99,7 @@ type IntermediateStepType = {
   content: string;
   createdAt: Date;
   isLike: boolean;
-  bookmark: boolean;
+  important: boolean;
   favorite: boolean;
   chart?: string;
 };
@@ -154,6 +159,7 @@ export function ChatWindow(props: {
     useState(false);
   const [currentChatId, setCurrentChatId] = useState(props.chatId);
   const [messagesLoaded, setMessagesLoaded] = useState(false);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [selectedLanguage, setSelectedLanguage] = useState("english");
   const [selectedAIModel, setSelectedAIModel] = useState<AISettings | null>(
     null
@@ -169,10 +175,12 @@ export function ChatWindow(props: {
   >({});
 
   const [history, setHistory] = useState<any[]>([]);
-  const [bookmarks, setBookMarks] = useState<any[]>([]);
+  const [important, setImportant] = useState<any[]>([]);
+  const [chatBookMarks, setChatBookMarks] = useState<any[]>([]);
   const [favorites, setFavorites] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
-  const [bookMarkLoading, setBookMarkLoading] = useState(false);
+  const [importantLoading, setImportantLoading] = useState(false);
+  const [chatBookMarkLoading, setChatBookMarkLoading] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
   const [bookmarkClickLoading, setBookmarkClickLoading] = useState(false);
   const usageRef = useRef<any>(null);
@@ -196,18 +204,34 @@ export function ChatWindow(props: {
 
   // Fetch Bookmarks
 
-  const fetchBookMarks = async () => {
-    if (bookMarkLoading) return;
-    setBookMarkLoading(true);
+  const fetchImportant = async () => {
+    if (importantLoading) return;
+    setImportantLoading(true);
     try {
-      const response = await getChatBookMarks("LangStarter");
-      setBookMarks(response as any[]);
+      const response = await getChatImportant("LangStarter");
+      setImportant(response as any[]);
     } catch (error) {
-      console.error("Error fetching Bookmarks:", error);
-      toast.error("Error fetching Bookmarks");
+      console.error("Error fetching Important messages:", error);
+      toast.error("Error fetching Important messages");
       throw error;
     } finally {
-      setBookMarkLoading(false);
+      setImportantLoading(false);
+    }
+  };
+
+  const fetchChatBookMarks = async () => {
+    if (chatBookMarkLoading) return;
+    setChatBookMarkLoading(true);
+    try {
+      const response = await getChatBookMarks("LangStarter");
+
+      setChatBookMarks(response as any[]);
+    } catch (error) {
+      console.error("Error fetching Chat Bookmarks:", error);
+      toast.error("Error fetching Chat Bookmarks");
+      throw error;
+    } finally {
+      setChatBookMarkLoading(false);
     }
   };
 
@@ -231,12 +255,16 @@ export function ChatWindow(props: {
     await fetchHistory();
   };
 
-  const refreshBookMarks = async () => {
-    await fetchBookMarks();
+  const refreshImportant = async () => {
+    await fetchImportant();
   };
 
   const refreshFavorites = async () => {
     await fetchFavorites();
+  };
+
+  const refreshChatBookMarks = async () => {
+    await fetchChatBookMarks();
   };
 
   useEffect(() => {
@@ -314,6 +342,7 @@ export function ChatWindow(props: {
             createdAt: new Date().toISOString(),
             isLike: false,
             bookmark: false,
+            important: false,
             favorite: false,
             prompt_tokens: usageRef.current?.input_tokens,
             completion_tokens: usageRef.current?.output_tokens,
@@ -341,12 +370,30 @@ export function ChatWindow(props: {
     generateId: () => uuidv4(),
   });
 
-  // Auto-scroll to bottom when new messages arrive
+  // Auto-scroll to bottom when new messages arrive (but not for initial load)
   useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    // Skip auto-scroll during initial load or when no messages
+    if (isInitialLoad || !messagesLoaded || chat.messages.length <= 1) {
+      return;
     }
-  }, [chat.messages]);
+
+    // For subsequent message additions, auto-scroll if user is near bottom
+    if (messagesEndRef.current) {
+      const container = messagesContainerRef.current;
+      if (container) {
+        const { scrollTop, scrollHeight, clientHeight } = container;
+        const isNearBottom = scrollHeight - scrollTop - clientHeight < 150;
+
+        // Auto-scroll if user is near bottom (they're actively viewing)
+        if (isNearBottom) {
+          messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+        }
+      } else {
+        // If container not available yet, just scroll (for new conversations)
+        messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+      }
+    }
+  }, [chat.messages, messagesLoaded, isInitialLoad]);
 
   // Check if user should see scroll to bottom button
   const handleScroll = () => {
@@ -380,75 +427,50 @@ export function ChatWindow(props: {
     updates: Partial<Message>
   ) => {
     try {
-      let messageIds: string[] = [];
-      if (Array.isArray(messageId)) {
-        messageIds = messageId;
-      } else {
-        messageIds = [messageId];
-      }
+      // Update local state
+      const updatedMessages = chat.messages.map((msg) =>
+        msg.id === messageId ? { ...msg, ...updates } : msg
+      );
+      chat.setMessages(updatedMessages);
 
-      // Update database for all affected messages
+      // Update database if currentChatId exists
       if (currentChatId) {
-        for (const id of messageIds) {
-          const dbUpdates: any = { messageId: id };
-          if (updates.isLike !== undefined) dbUpdates.isLike = updates.isLike;
-          if (updates.bookmark !== undefined)
-            dbUpdates.bookmark = updates.bookmark;
-          if (updates.favorite !== undefined)
-            dbUpdates.favorite = updates.favorite;
-          await updateMessageStatus(dbUpdates);
-        }
+        await updateMessageStatus({
+          messageId,
+          isLike: updates.isLike,
+          important: updates.important,
+          favorite: updates.favorite,
+        });
 
-        // Show success toast based on what was updated
-        if (updates.bookmark !== undefined) {
+        // Show appropriate toast message
+        if (updates.important !== undefined) {
           toast.success(
-            updates.bookmark ? "Prompt bookmarked" : "Prompt unbookmarked"
+            updates.important
+              ? "Message marked as important"
+              : "Important status removed"
           );
         }
         if (updates.favorite !== undefined) {
           toast.success(
-            updates.favorite ? "Prompt favorited" : "Prompt unfavorited"
+            updates.favorite ? "Message favorited" : "Favorite removed"
           );
         }
-
-        // Refetch messages from DB to ensure UI is in sync
-        const refreshedMessages = await getMessagesByChatId(currentChatId);
-        if (refreshedMessages && refreshedMessages.length > 0) {
-          const formattedMessages: Message[] = refreshedMessages.map(
-            (msg: any) => ({
-              id: msg.id,
-              role: msg.role || "user",
-              content: msg.content,
-              createdAt: msg.createdAt ? new Date(msg.createdAt) : new Date(),
-              isLike: msg.isLike,
-              bookmark: msg.bookmark,
-              favorite: msg.favorite,
-            })
-          );
-          chat.setMessages(formattedMessages);
+        if (updates.isLike !== undefined) {
+          toast.success(updates.isLike ? "Message liked" : "Like removed");
         }
       }
     } catch (error) {
       console.error("Failed to update message status:", error);
-      if (updates.bookmark !== undefined) {
-        toast.error("Failed to save bookmark status");
-      }
-      if (updates.favorite !== undefined) {
-        toast.error("Failed to save favorite status");
-      }
-      if (updates.isLike !== undefined) {
-        toast.error("Failed to update message status");
-      }
+      toast.error("Failed to update message status");
     }
   };
-
   // Load existing messages when component mounts or chatId changes
   const loadMessages = useCallback(async () => {
     setMessagesLoaded(false); // Reset loading state
 
     if (props.chatId && session?.user?.user_catalog_id) {
       try {
-        const existingMessages = await getMessagesByChatId(props.chatId);
+        const existingMessages = await getMessagesByChatId(props?.chatId);
         if (existingMessages && existingMessages.length > 0) {
           // Convert database messages to useChat format
           const formattedMessages: Message[] = existingMessages.map(
@@ -459,6 +481,7 @@ export function ChatWindow(props: {
               createdAt: msg.createdAt ? new Date(msg.createdAt) : new Date(),
               isLike: msg.isLike,
               bookmark: msg.bookmark,
+              important: msg.important,
               favorite: msg.favorite,
             })
           );
@@ -479,11 +502,15 @@ export function ChatWindow(props: {
     }
 
     setMessagesLoaded(true);
+    // Set initial load to false after first load
+    setTimeout(() => setIsInitialLoad(false), 100);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.chatId, session?.user?.user_catalog_id]);
 
   useEffect(() => {
     loadMessages();
+    // Reset initial load state when chatId changes
+    setIsInitialLoad(true);
   }, [loadMessages]);
 
   const createNewChatAndRedirect = async (userMessage: string) => {
@@ -555,6 +582,7 @@ export function ChatWindow(props: {
         createdAt: new Date().toISOString(),
         isLike: false,
         bookmark: false,
+        important: false,
         favorite: false,
         prompt_uuid: promptId,
       });
@@ -588,9 +616,18 @@ export function ChatWindow(props: {
     const userMessageId = uuidv4();
     await saveUserMessage(chatId, userMessageId, userMessage);
 
+    // Force scroll to bottom when user sends a message
+    setIsInitialLoad(false);
+
     if (!showIntermediateSteps) {
       // Simple case: let useChat handle the flow and onFinish will save the response
       chat.handleSubmit(e);
+      // Ensure scroll to bottom after message is sent
+      setTimeout(() => {
+        if (messagesEndRef.current) {
+          messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+        }
+      }, 100);
       return;
     }
 
@@ -608,6 +645,7 @@ export function ChatWindow(props: {
         createdAt: new Date(),
         isLike: false,
         bookmark: false,
+        important: false,
         favorite: false,
       } as Message,
     ];
@@ -658,6 +696,7 @@ export function ChatWindow(props: {
           }),
           createdAt: new Date(),
           isLike: false,
+          important: false,
           bookmark: false,
           favorite: false,
         });
@@ -679,9 +718,17 @@ export function ChatWindow(props: {
         createdAt: new Date(),
         isLike: false,
         bookmark: false,
+        important: false,
         favorite: false,
       };
       chat.setMessages([...newMessages, finalAssistantMessage]);
+
+      // Ensure scroll to bottom after final message
+      setTimeout(() => {
+        if (messagesEndRef.current) {
+          messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+        }
+      }, 100);
 
       // Save the final assistant message
       try {
@@ -696,6 +743,7 @@ export function ChatWindow(props: {
           createdAt: new Date().toISOString(),
           isLike: false,
           bookmark: false,
+          important: false,
           favorite: false,
           prompt_uuid: promptId,
         });
@@ -723,6 +771,8 @@ export function ChatWindow(props: {
     if (!content) return;
 
     chat.setInput(content);
+    // Mark that we're no longer in initial load when user interacts
+    setIsInitialLoad(false);
   };
 
   const handleBookmarkClick = async (promptUuid: string) => {
@@ -767,6 +817,7 @@ export function ChatWindow(props: {
             createdAt: new Date().toISOString(),
             isLike: msg.isLike || false,
             bookmark: msg.bookmark || false,
+            important: msg.important || false,
             favorite: msg.favorite || false,
             prompt_uuid: currentPromptUuid,
           });
@@ -779,6 +830,7 @@ export function ChatWindow(props: {
             createdAt: msg.createdAt ? new Date(msg.createdAt) : new Date(),
             isLike: msg.isLike || false,
             bookmark: msg.bookmark || false,
+            important: msg.important || false,
             favorite: msg.favorite || false,
           });
         }
@@ -787,97 +839,108 @@ export function ChatWindow(props: {
         const updatedMessages = [...chat.messages, ...formattedMessages];
         chat.setMessages(updatedMessages);
 
-        toast.success("Bookmark conversation added to chat");
+        toast.success("Important conversation added to chat");
       } else {
-        toast.error("No messages found for this bookmark");
+        toast.error("No messages found for this important conversation");
       }
     } catch (error) {
-      console.error("Failed to load bookmark messages:", error);
-      toast.error("Failed to load bookmark conversation");
+      console.error("Failed to load important messages:", error);
+      toast.error("Failed to load important conversation");
     } finally {
       setBookmarkClickLoading(false);
     }
   };
 
   return (
-    <div className="h-full flex  flex-col">
-      {/* Header with icons - fixed at top */}
-      <div className="flex-shrink-0  flex items-center justify-between px-4 py-3 bg-background border-b">
-        <div className="bg-muted rounded-full px-3 py-1">
-          <p className="text-sm">
-            Model:{" "}
-            <span className="capitalize">
-              {selectedAIModel?.provider || "Openai"}
-            </span>
-          </p>
-        </div>
-        <div className="flex items-center gap-2.5">
-          <Favorites
-            favorites={favorites}
-            onDropdownOpen={fetchFavorites}
-            onFavoriteUpdate={refreshFavorites}
-            loading={favoriteLoading}
-            onSendFavorite={handleSendFavoritePrompt}
-          />
-          <SuggestedPrompts />
-          <button onClick={handleNewChatClick} className="cursor-pointer">
-            <Plus className=" text-muted-foreground" />
-          </button>
-          <DropdownMenu>
-            <DropdownMenuTrigger>
-              <Ellipsis className="w-5 h-5 text-muted-foreground" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuGroup>
-                <DropdownMenuItem>
-                  <Assistants />
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <History
-                    history={history}
-                    onDropdownOpen={fetchHistory}
-                    onHistoryUpdate={refreshHistory}
-                    loading={historyLoading}
-                  />
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <BookMark
-                    bookmarks={bookmarks}
-                    onDropdownOpen={fetchBookMarks}
-                    onBookMarkUpdate={refreshBookMarks}
-                    loading={bookMarkLoading}
-                    onBookmarkClick={handleBookmarkClick}
-                  />
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <div className="flex items-center gap-2">
-                    <Coins className="text-yellow-500" />
-                    <span>Token Use</span>
-                  </div>
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <div className="flex items-center gap-2">
-                    <Logs className="w-5 h-5 text-muted-foreground" />
-                    <span>Chat Logs</span>
-                  </div>
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <div className="flex items-center gap-2">
-                    <Settings className="w-5 h-5 text-muted-foreground" />
-                    <span>Settings</span>
-                  </div>
-                </DropdownMenuItem>
-              </DropdownMenuGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
+    <div className="h-full flex flex-col relative">
+      {/* Header with icons - sticky at top of chat container */}
+      <div className="sticky top-0 z-40 bg-background border-b flex-shrink-0">
+        <div className="flex items-center justify-between px-4 py-3">
+          <div className=" px-3 py-1">
+            <ChatName id={props?.chatId} />
+          </div>
+          <div className="flex items-center gap-2.5">
+            <Favorites
+              favorites={favorites}
+              onDropdownOpen={fetchFavorites}
+              onFavoriteUpdate={refreshFavorites}
+              loading={favoriteLoading}
+              onSendFavorite={handleSendFavoritePrompt}
+            />
+            <SuggestedPrompts />
+            <button onClick={handleNewChatClick} className="cursor-pointer">
+              <Plus className=" text-muted-foreground" />
+            </button>
+            <DropdownMenu>
+              <DropdownMenuTrigger>
+                <Ellipsis className="w-5 h-5 text-muted-foreground" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuGroup>
+                  <DropdownMenuItem>
+                    <Assistants />
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <History
+                      history={history}
+                      onDropdownOpen={fetchHistory}
+                      onHistoryUpdate={refreshHistory}
+                      loading={historyLoading}
+                    />
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <Important
+                      important={important}
+                      onDropdownOpen={fetchImportant}
+                      onImportantUpdate={refreshImportant}
+                      loading={importantLoading}
+                      onImportantClick={handleBookmarkClick}
+                    />
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <ChatBookMarks
+                      bookmarks={chatBookMarks}
+                      onDropdownOpen={fetchChatBookMarks}
+                      onBookMarkUpdate={refreshChatBookMarks}
+                      loading={chatBookMarkLoading}
+                      onBookmarkClick={handleBookmarkClick}
+                    />
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <div className="flex items-center gap-2">
+                      <Coins className="text-yellow-500" />
+                      <span>Token Use</span>
+                    </div>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <div className="flex items-center gap-2">
+                      <Logs className="w-5 h-5 text-muted-foreground" />
+                      <span>Chat Logs</span>
+                    </div>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <div className="flex items-center gap-2">
+                      <Settings className="w-5 h-5 text-muted-foreground" />
+                      <span>Settings</span>
+                    </div>
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
       </div>
 
       {/* Messages area - scrollable middle section */}
-      <div className="flex-1 overflow-hidden relative">
+      <div
+        className="flex-1 overflow-hidden relative"
+        style={{
+          paddingBottom: "80px" /* Space for fixed input */,
+        }}
+      >
         <div
           ref={messagesContainerRef}
-          className="h-full px-4 py-4 pb-24 overflow-y-auto hide-scrollbar"
+          className="h-full px-4 py-4 overflow-y-auto hide-scrollbar"
           style={{
             scrollbarWidth: "none" /* Firefox */,
             msOverflowStyle: "none" /* Internet Explorer 10+ */,
@@ -892,7 +955,7 @@ export function ChatWindow(props: {
             }))}
             sourcesForMessages={sourcesForMessages}
             onUpdateMessage={handleUpdateMessage}
-            onBookmarkUpdate={refreshBookMarks}
+            onBookmarkUpdate={refreshImportant}
             onFavoriteUpdate={refreshFavorites}
           />
           {/* Invisible div for auto-scroll */}
@@ -901,7 +964,7 @@ export function ChatWindow(props: {
 
         {/* Scroll to bottom button */}
         {showScrollToBottom && (
-          <div className="absolute bottom-32 left-1/2 transform -translate-x-1/2 z-20">
+          <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2 z-20">
             <Button
               variant="outline"
               size="sm"
@@ -920,7 +983,7 @@ export function ChatWindow(props: {
       {/* Input area - fixed at bottom of viewport but aligned with content */}
       <div className="fixed bottom-0 left-0 right-0 z-50">
         <div
-          className="bg-background border-t"
+          className="bg-background"
           style={{
             marginLeft: "var(--sidebar-width, 240px)",
             paddingLeft: "1rem",

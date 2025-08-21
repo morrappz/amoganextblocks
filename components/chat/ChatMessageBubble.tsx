@@ -2,6 +2,8 @@
 
 import {
   getChatBookMarks,
+  getMessageById,
+  getMessagesByPromptUuid,
   updateMessageStatus,
 } from "@/app/(authenticated)/langchain-chat/lib/actions";
 import { cn } from "@/utils/cn";
@@ -13,7 +15,7 @@ import {
   Heart,
   Star,
 } from "lucide-react";
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -31,7 +33,7 @@ type Message = {
   content: string;
   createdAt: Date;
   isLike?: boolean;
-  bookmark?: boolean;
+  important?: boolean;
   favorite?: boolean;
   chart?: any; // Can now hold complex chart objects
 };
@@ -65,93 +67,108 @@ export const ChatMessageBubble = React.memo(function ChatMessageBubble(
     analyticCard,
     analyticCardWithFileApi,
     table,
+    messages,
   } = props;
   const { data: session } = useSession();
 
-  const handleBookmark = () => {
-    if (message.role === "assistant" && Array.isArray(props.messages)) {
-      const idx = props.messages.findIndex((m) => m.id === message.id);
-      if (idx > 0) {
-        // Find the previous user message
-        const prevUserMsg = props.messages
-          .slice(0, idx)
-          .reverse()
-          .find((m) => m.role === "user");
-        if (prevUserMsg) {
-          // Get the latest bookmark value from props.messages
-          const latestPrompt = props.messages.find(
-            (m) => m.id === prevUserMsg.id
+  // State to track the icon status from the corresponding user prompt
+  const [iconStatus, setIconStatus] = useState({
+    important: false,
+    favorite: false,
+  });
+
+  // Load the icon status when component mounts or message changes
+  useEffect(() => {
+    const loadIconStatus = async () => {
+      if (message.role === "assistant") {
+        try {
+          const currentMessage = await getMessageById(message.id);
+          const promptMessages = await getMessagesByPromptUuid(
+            currentMessage?.prompt_uuid
           );
-          const isBookmarked = latestPrompt?.bookmark ?? false;
-          onUpdateMessage(prevUserMsg.id, { bookmark: !isBookmarked });
-          props.onBookmarkUpdate?.();
-          return;
+          const userPrompt = promptMessages.find((msg) => msg.role === "user");
+          setIconStatus({
+            important: userPrompt?.important || false,
+            favorite: userPrompt?.favorite || false,
+          });
+        } catch (error) {
+          console.error("Error loading icon status:", error);
+          // Set default values on error
+          setIconStatus({
+            important: false,
+            favorite: false,
+          });
         }
+      } else {
+        // For user messages, use their own status
+        setIconStatus({
+          important: message?.important || false,
+          favorite: message?.favorite || false,
+        });
       }
-      toast.error("No prompt found to bookmark");
-    } else {
-      // For user messages, update their own bookmark status
-      onUpdateMessage(message.id, { bookmark: !message.bookmark });
-      props.onBookmarkUpdate?.();
+    };
+
+    loadIconStatus();
+  }, [message.id, message.important, message.favorite, message.role]);
+
+  const handleImportant = async () => {
+    const currentMessage = await getMessageById(message.id);
+
+    const getPrompt = await getMessagesByPromptUuid(
+      currentMessage?.prompt_uuid
+    );
+
+    const userPrompt = getPrompt.filter((msg) => msg.role === "user");
+
+    // Check if userPrompt exists before accessing
+    if (userPrompt.length === 0) {
+      console.warn("No user prompt found for this message");
+      return;
     }
+
+    const newImportantStatus = !iconStatus.important;
+
+    onUpdateMessage(userPrompt[0].id, {
+      important: newImportantStatus,
+    });
+
+    // Update local icon status immediately
+    setIconStatus((prev) => ({
+      ...prev,
+      important: newImportantStatus,
+    }));
+
+    props.onBookmarkUpdate?.();
   };
 
-  // Custom favorite logic: if assistant, favorite the previous user prompt
-  const getPromptFavoriteStatus = () => {
-    if (message.role === "assistant" && Array.isArray(props.messages)) {
-      const idx = props.messages.findIndex((m) => m.id === message.id);
-      if (idx > 0) {
-        const prevUserMsg = props.messages
-          .slice(0, idx)
-          .reverse()
-          .find((m) => m.role === "user");
-        return prevUserMsg?.favorite ?? false;
-      }
-    }
-    return message.favorite ?? false;
-  };
+  const handleFavorite = async () => {
+    const currentMessage = await getMessageById(message.id);
 
-  // Custom bookmark logic: if assistant, show the previous user prompt's bookmark status
-  const getPromptBookmarkStatus = () => {
-    if (message.role === "assistant" && Array.isArray(props.messages)) {
-      const idx = props.messages.findIndex((m) => m.id === message.id);
-      if (idx > 0) {
-        const prevUserMsg = props.messages
-          .slice(0, idx)
-          .reverse()
-          .find((m) => m.role === "user");
-        return prevUserMsg?.bookmark ?? false;
-      }
-    }
-    return message.bookmark ?? false;
-  };
+    const getPrompt = await getMessagesByPromptUuid(
+      currentMessage?.prompt_uuid
+    );
 
-  const handleFavorite = () => {
-    if (message.role === "assistant" && Array.isArray(props.messages)) {
-      const idx = props.messages.findIndex((m) => m.id === message.id);
-      if (idx > 0) {
-        // Find the previous user message
-        const prevUserMsg = props.messages
-          .slice(0, idx)
-          .reverse()
-          .find((m) => m.role === "user");
-        if (prevUserMsg) {
-          // Get the latest favorite value from props.messages
-          const latestPrompt = props.messages.find(
-            (m) => m.id === prevUserMsg.id
-          );
-          const isFav = latestPrompt?.favorite ?? false;
-          onUpdateMessage(prevUserMsg.id, { favorite: !isFav });
-          props.onFavoriteUpdate?.();
-          return;
-        }
-      }
-      toast.error("No prompt found to favorite");
-    } else {
-      // For user messages, update their own favorite status
-      onUpdateMessage(message.id, { favorite: !message.favorite });
-      props.onFavoriteUpdate?.();
+    const userPrompt = getPrompt.filter((msg) => msg.role === "user");
+
+    // Check if userPrompt exists before accessing
+    if (userPrompt.length === 0) {
+      console.warn("No user prompt found for this message");
+      return;
     }
+
+    const newFavoriteStatus = !iconStatus.favorite;
+
+    onUpdateMessage(userPrompt[0].id, {
+      favorite: newFavoriteStatus,
+    });
+
+    // Update local icon status immediately
+    setIconStatus((prev) => ({
+      ...prev,
+      favorite: newFavoriteStatus,
+    }));
+
+    props.onFavoriteUpdate?.();
   };
 
   const handleCopy = () => {
@@ -213,17 +230,19 @@ export const ChatMessageBubble = React.memo(function ChatMessageBubble(
                   onClick={handleCopy}
                   className="h-5 w-5 cursor-pointer hover:text-primary text-muted-foreground"
                 />
-                <Bookmark
-                  onClick={handleBookmark}
+                <Star
+                  onClick={handleImportant}
                   className={`h-5 w-5 ${
-                    getPromptBookmarkStatus() ? "fill-primary text-primary" : ""
+                    iconStatus?.important
+                      ? "fill-yellow-500 text-yellow-500"
+                      : ""
                   } cursor-pointer hover:text-primary text-muted-foreground`}
                 />
 
                 <Heart
                   onClick={handleFavorite}
                   className={`h-5 w-5 ${
-                    getPromptFavoriteStatus() ? "fill-red-500 text-red-500" : ""
+                    iconStatus?.favorite ? "fill-red-500 text-red-500" : ""
                   } cursor-pointer hover:text-red-600 text-muted-foreground`}
                 />
                 <AlarmClockCheck className="h-5 cursor-pointer hover:text-primary w-5 text-muted-foreground" />

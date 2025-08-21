@@ -8,26 +8,24 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { formatDate } from "@/lib/utils";
-import { Bookmark, LoaderCircle, Trash } from "lucide-react";
+import { Bookmark, LoaderCircle, Star, Trash } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import {
   deleteChat,
   getChatBookMarks,
-  removeBookMark,
+  removeBookmark,
 } from "@/app/(authenticated)/langchain-chat/lib/actions";
 
 import React from "react";
 
 export interface Props {
   id: string;
-  chatId: string;
-  content: string;
+  title: string;
   createdAt: string;
-  prompt_uuid: string;
 }
 
-const BookMark = ({
+const ChatBookMarks = ({
   bookmarks,
   onDropdownOpen,
   onBookMarkUpdate,
@@ -46,7 +44,7 @@ const BookMark = ({
     event.preventDefault();
 
     try {
-      await removeBookMark(id);
+      await removeBookmark(id);
       onBookMarkUpdate();
       toast.success("Bookmark removed successfully");
     } catch (error) {
@@ -67,7 +65,7 @@ const BookMark = ({
         <DropdownMenuTrigger asChild>
           <div className="flex items-center gap-2">
             <Bookmark className="w-5 h-5 text-muted-foreground" />
-            <span>Bookmark</span>
+            <span>Bookmarks</span>
           </div>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="w-[300px]" side="bottom" align="end">
@@ -90,16 +88,13 @@ const BookMark = ({
                   }}
                 >
                   <div className="flex justify-between w-full items-center">
-                    <div
-                      className="overflow-ellipsis cursor-pointer flex-1"
-                      onClick={() => onBookmarkClick?.(item.prompt_uuid)}
-                    >
-                      <>
+                    <div className="overflow-ellipsis cursor-pointer flex-1">
+                      <Link href={`/langchain-chat/chat/${item.id}`}>
                         <p className="overflow-ellipsis line-clamp-2 break-all">
-                          {item.content}
+                          {item.title}
                         </p>
                         <p>{formatDate(item.createdAt)}</p>
-                      </>
+                      </Link>
                     </div>
                     <div className="hover:bg-red-100 hover:scale-110 rounded-md p-2.5">
                       <Trash
@@ -124,4 +119,4 @@ const BookMark = ({
   );
 };
 
-export default BookMark;
+export default ChatBookMarks;
