@@ -23,7 +23,7 @@ export async function getChatHistory(chatGroup: string) {
   }
 }
 
-export async function getChatBookMarks(chatGroup: string) {
+export async function getChatImportant(chatGroup: string) {
   const session = await auth();
   const userId = session?.user?.user_catalog_id;
   try {
@@ -33,7 +33,7 @@ export async function getChatBookMarks(chatGroup: string) {
       .select("id,chatId,content,createdAt,assistantId,prompt_uuid")
       .eq("user_id", userId)
       .eq("chat_group", chatGroup)
-      .eq("bookmark", true)
+      .eq("important", true)
       .order("createdAt", { ascending: false });
     if (error) throw error;
 
@@ -174,7 +174,13 @@ export async function getMessagesByChatId(chatId: string) {
   }
 }
 
-export async function getMessagesByPromptUuid(promptUuid: string) {
+export async function getMessagesByPromptUuid(promptUuid: string | null) {
+  // Return empty array if promptUuid is null or undefined
+  if (!promptUuid || promptUuid === "null") {
+    console.log("promptUuid is null or invalid, returning empty array");
+    return [];
+  }
+
   const session = await auth();
   try {
     const { data, error } = await postgrest
@@ -185,6 +191,24 @@ export async function getMessagesByPromptUuid(promptUuid: string) {
       .eq("user_id", session?.user?.user_catalog_id)
       .order("createdAt", { ascending: true });
 
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error("Failed to get messages by prompt_uuid:", error);
+    throw error;
+  }
+}
+
+export async function getMessageById(messageId: string) {
+  const session = await auth();
+  try {
+    const { data, error } = await postgrest
+      .asAdmin()
+      .from("message")
+      .select("id,chatId,role,content,prompt_uuid")
+      .eq("id", messageId)
+      .eq("user_id", session?.user?.user_catalog_id)
+      .single();
     if (error) throw error;
     return data;
   } catch (error) {
@@ -230,21 +254,40 @@ export async function removeFavorite(id: string) {
   }
 }
 
-export async function removeBookMark(id: string) {
+export async function removeImportant(id: string) {
   try {
     const { error } = await postgrest
       .asAdmin()
       .from("message")
-      .update({ bookmark: false })
+      .update({ important: false })
       .eq("id", id);
 
     if (error) {
-      throw new Error("Failed to remove favorite");
+      throw new Error("Failed to remove important");
     }
 
     return { success: true };
   } catch (error) {
-    console.error("Error removing favorite:", error);
+    console.error("Error removing important:", error);
+    throw error;
+  }
+}
+
+export async function removeBookmark(id: string) {
+  try {
+    const { error } = await postgrest
+
+      .from("chat")
+      .update({ bookmark: false })
+      .eq("id", id);
+
+    if (error) {
+      throw new Error("Failed to remove bookmark");
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error removing bookmark:", error);
     throw error;
   }
 }
@@ -252,12 +295,12 @@ export async function removeBookMark(id: string) {
 export async function updateMessageStatus({
   messageId,
   isLike,
-  bookmark,
+  important,
   favorite,
 }: {
   messageId: string;
   isLike?: boolean;
-  bookmark?: boolean;
+  important?: boolean;
   favorite?: boolean;
 }) {
   try {
@@ -266,8 +309,8 @@ export async function updateMessageStatus({
     if (isLike !== undefined) {
       updateData.isLike = isLike;
     }
-    if (bookmark !== undefined) {
-      updateData.bookmark = bookmark;
+    if (important !== undefined) {
+      updateData.important = important;
     }
     if (favorite !== undefined) {
       updateData.favorite = favorite;
@@ -313,6 +356,62 @@ export async function fetchFormSetupData(formId: string) {
     if (error) return error;
     return data;
   } catch (error) {
+    throw error;
+  }
+}
+
+export async function fetchChatTitle(id?: string) {
+  const session = await auth();
+  try {
+    const { data, error } = await postgrest
+      .from("chat")
+      .select("title,bookmark")
+      .eq("id", id)
+      .eq("user_id", session?.user?.user_catalog_id)
+      .single();
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error("Failed to fetch chat title:", error);
+    throw error;
+  }
+}
+
+export async function updateChatTitle(
+  title: string,
+  bookmark: boolean,
+  id?: string
+) {
+  const session = await auth();
+  try {
+    const { data, error } = await postgrest
+      .from("chat")
+      .update({ title, bookmark })
+      .eq("id", id)
+      .eq("user_id", session?.user?.user_catalog_id)
+      .single();
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error("Failed to update chat title:", error);
+    throw error;
+  }
+}
+
+export async function getChatBookMarks(chatGroup: string) {
+  const session = await auth();
+  try {
+    const { data, error } = await postgrest
+      .from("chat")
+      .select("id,title,bookmark,createdAt")
+      .eq("chat_group", chatGroup)
+      .eq("bookmark", true)
+      .eq("user_id", session?.user?.user_catalog_id)
+      .order("createdAt", { ascending: false });
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error("Failed to fetch chat bookmarks:", error);
     throw error;
   }
 }

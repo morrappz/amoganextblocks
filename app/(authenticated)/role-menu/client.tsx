@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -19,10 +20,35 @@ import {
 import React from "react";
 import Link from "next/link";
 import { Tables } from "@/types/database";
+import { createNewChatSession } from "@/app/(authenticated)/langchain-chat/lib/actions";
+import { toast } from "sonner";
 
 export default function ClientRoleMenu({ pages_list }: { pages_list: any[] }) {
   const [sort, setSort] = useState("ascending");
   const [searchTerm, setSearchTerm] = useState("");
+  const router = useRouter();
+
+  const handlePageClick = async (page: any, e: React.MouseEvent) => {
+    // Check if this is the Langchain Chat page
+    if (
+      page.page_name === "Langchain Chat" &&
+      page.page_link === "/langchain-chat/chat"
+    ) {
+      e.preventDefault(); // Prevent default Link navigation
+
+      try {
+        const result = await createNewChatSession();
+        if (result.success) {
+          // Navigate to the new chat
+          router.push(`/langchain-chat/chat/${result.chatId}`);
+        }
+      } catch (error) {
+        console.error("Failed to create new chat:", error);
+        toast.error("Failed to create new chat session");
+      }
+    }
+    // For all other pages, the Link component will handle navigation normally
+  };
 
   // const filteredApps = pages
   //   .sort((a, b) => {
@@ -79,6 +105,7 @@ export default function ClientRoleMenu({ pages_list }: { pages_list: any[] }) {
             <li
               key={page.page_name}
               className="rounded-lg bg-card border p-4 hover:shadow-md"
+              onClick={(e) => handlePageClick(page, e)}
             >
               <div className="mb-6 flex items-center justify-between">
                 <div
