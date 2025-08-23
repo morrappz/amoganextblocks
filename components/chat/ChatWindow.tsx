@@ -1012,31 +1012,57 @@ export function ChatWindow(props: {
   };
 
   return (
-    <div className="h-full flex flex-col relative">
+    <div className="h-full flex flex-col min-h-screen relative">
       {/* Header with icons - sticky at top of chat container */}
-      <div className="sticky top-0 z-40 bg-background border-b flex-shrink-0">
-        <div className="flex flex-col md:flex-row items-center justify-between px-2 sm:px-4 py-2 sm:py-3">
+      <div className="sticky top-0 z-40 bg-background  border-b flex-shrink-0">
+        <div className="flex items-center justify-between px-2 sm:px-4 py-2 sm:py-3">
           <div className="px-1 sm:px-3 py-1 min-w-0 flex-1">
             <ChatName id={props?.chatId} />
           </div>
           <div className="flex items-center gap-1 sm:gap-2.5 flex-shrink-0">
-            <Favorites
-              favorites={favorites}
-              onDropdownOpen={fetchFavorites}
-              onFavoriteUpdate={refreshFavorites}
-              loading={favoriteLoading}
-              onSendFavorite={handleSendFavoritePrompt}
-            />
-            <SuggestedPrompts />
-            <button onClick={handleNewChatClick} className="cursor-pointer p-1">
-              <Plus className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" />
-            </button>
+            <div className="md:flex items-center hidden gap-1 sm:gap-2">
+              <Favorites
+                favorites={favorites}
+                onDropdownOpen={fetchFavorites}
+                onFavoriteUpdate={refreshFavorites}
+                loading={favoriteLoading}
+                onSendFavorite={handleSendFavoritePrompt}
+              />
+              <SuggestedPrompts />
+              <button
+                onClick={handleNewChatClick}
+                className="cursor-pointer p-1"
+              >
+                <Plus className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" />
+              </button>
+            </div>
             <DropdownMenu>
               <DropdownMenuTrigger className="p-1">
                 <Ellipsis className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" />
               </DropdownMenuTrigger>
               <DropdownMenuContent>
                 <DropdownMenuGroup>
+                  <DropdownMenuItem className="md:hidden">
+                    <Favorites
+                      favorites={favorites}
+                      onDropdownOpen={fetchFavorites}
+                      onFavoriteUpdate={refreshFavorites}
+                      loading={favoriteLoading}
+                      onSendFavorite={handleSendFavoritePrompt}
+                    />
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="md:hidden">
+                    <SuggestedPrompts />
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="md:hidden">
+                    <button
+                      onClick={handleNewChatClick}
+                      className="cursor-pointer flex items-center gap-2.5 p-1"
+                    >
+                      <Plus className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" />
+                      <span className=" md:hidden">New Chat</span>
+                    </button>
+                  </DropdownMenuItem>
                   <DropdownMenuItem>
                     <Assistants />
                   </DropdownMenuItem>
@@ -1095,7 +1121,7 @@ export function ChatWindow(props: {
       <div className="flex-1 overflow-hidden relative pb-16 sm:pb-20">
         <div
           ref={messagesContainerRef}
-          className="h-full px-2 sm:px-4 py-2 sm:py-4 overflow-y-auto hide-scrollbar"
+          className="h-full px-2  sm:px-4 py-2 sm:py-4 overflow-y-auto hide-scrollbar"
           onScroll={handleScroll}
         >
           <ChatMessages
@@ -1133,7 +1159,7 @@ export function ChatWindow(props: {
       {/* Input area - fixed at bottom with responsive positioning */}
       <div
         className={cn(
-          "fixed bottom-0 z-50 bg-background border-t",
+          "sticky bottom-0 z-50 bg-background ",
           isMobile ? "left-0 right-0" : "right-0",
           !isMobile && "left-[var(--sidebar-width,240px)]"
         )}

@@ -115,7 +115,7 @@ export function ChatInput(props: {
                 <DropdownMenuTrigger asChild>
                   <div className="flex items-center gap-2.5 bg-muted border-2 p-1  cursor-pointer rounded-full">
                     <Settings2 className="w-5 h-5" />
-                    <h1 className="">Tools</h1>
+                    <h1 className="hidden md:block">Tools</h1>
                   </div>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
@@ -167,7 +167,7 @@ export function ChatInput(props: {
                 <DropdownMenuTrigger asChild>
                   <div className="flex items-center gap-2.5 bg-muted border-2 p-1  cursor-pointer rounded-full">
                     <Settings2 className="w-5 h-5" />
-                    <h1 className="">Language</h1>
+                    <h1 className="hidden md:block">Language</h1>
                   </div>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>

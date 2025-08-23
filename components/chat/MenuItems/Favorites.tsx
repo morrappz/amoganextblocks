@@ -61,7 +61,10 @@ const Favorites = ({
       >
         <DropdownMenuTrigger asChild>
           {/* <Button variant={"ghost"} size={"icon"} className="rounded-full"> */}
-          <Heart className="w-5 h-5 cursor-pointer text-muted-foreground" />
+          <div className="flex items-center gap-2.5">
+            <Heart className="w-5 h-5 cursor-pointer text-muted-foreground" />
+            <h1 className="md:hidden">Favorites</h1>
+          </div>
           {/* </Button> */}
         </DropdownMenuTrigger>
         <DropdownMenuContent className="w-[300px]" side="bottom" align="end">
