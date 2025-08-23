@@ -123,6 +123,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         "/sign-up",
         "/storesignin",
         "/storesignup",
+        "/langchain-chat/share",
       ];
 
       const isPublic = publicPaths.some((path) =>

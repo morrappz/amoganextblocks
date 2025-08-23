@@ -8,7 +8,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import type { Dispatch, FormEvent, ReactNode, SetStateAction } from "react";
 import { toast } from "sonner";
 import { StickToBottom, useStickToBottomContext } from "use-stick-to-bottom";
-import { useRouter } from "next/navigation";
+import { useParams, usePathname, useRouter } from "next/navigation";
 
 import { ChatMessageBubble } from "@/components/chat/ChatMessageBubble";
 import { IntermediateStep } from "./IntermediateStep";
@@ -192,6 +192,7 @@ export function ChatWindow(props: {
   const usageRef = useRef<any>(null);
   const promptId = uuidv4();
   const isMobile = useIsMobile();
+  const pathName = usePathname();
 
   // Fetch history when dropdown opens
   const fetchHistory = async () => {
@@ -594,6 +595,7 @@ export function ChatWindow(props: {
   }, [props.chatId, loadMessages, props.shareId]);
 
   const createNewChatAndRedirect = async (userMessage: string) => {
+    if (!session) return;
     try {
       const newChatId = uuidv4();
       const shareToken = uuidv4();
@@ -723,6 +725,12 @@ export function ChatWindow(props: {
 
   async function sendMessage(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (!session) {
+      toast.error("Login required");
+      const currentUrl = window.location.href;
+      router.push(`/sign-in?callbackUrl=${encodeURIComponent(currentUrl)}`);
+      return;
+    }
     if (chat.isLoading || intermediateStepsLoading) return;
 
     const userMessage = chat.input;
