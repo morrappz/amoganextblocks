@@ -49,25 +49,26 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       },
     }),
     Credentials({
-      name: "Login with User ID",
-      id: "user-id",
+      name: "Login with Email",
+      id: "user-email",
       credentials: {
-        userId: {
-          label: "User ID",
+        email: {
+          label: "Email",
           type: "text",
-          placeholder: "Enter User ID",
+          placeholder: "Enter Email",
         },
       },
       authorize: async (credentials) => {
         console.log("Login with User ID", credentials);
-        if (!credentials?.userId) {
+        if (!credentials?.email) {
           return null;
         }
 
         const { data: user } = await postgrest
+          .asAdmin()
           .from("user_catalog")
           .select("*")
-          .eq("user_catalog_id", credentials.userId as string)
+          .eq("user_email", credentials.email as string)
           .single();
 
         console.log("user", user);
